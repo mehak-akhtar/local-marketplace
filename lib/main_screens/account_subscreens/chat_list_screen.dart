@@ -113,7 +113,7 @@ class ChatListScreen extends StatelessWidget {
                   children: [
                     _buildChatItem(
                       context,
-                      'RAVI KUMAR',
+                      'Mehak Akhtar',
                       'Hello',
                       '2 hours',
                       Colors.blue,
@@ -121,7 +121,7 @@ class ChatListScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildChatItem(
                       context,
-                      'SUMITRA',
+                      'Aqsa',
                       'Hello',
                       '4 hours',
                       Colors.orange,
@@ -129,7 +129,7 @@ class ChatListScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildChatItem(
                       context,
-                      'JAYADISH',
+                      'Noor',
                       'Hello',
                       '10 hours',
                       Colors.green,

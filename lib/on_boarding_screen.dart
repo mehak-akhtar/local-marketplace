@@ -139,15 +139,3 @@ class OnboardingPage extends StatelessWidget {
     );
   }
 }
-
-// Example main screen after onboarding
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text("Welcome to Home Screen")),
-    );
-  }
-}

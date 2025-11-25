@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:olxapp/auth_screens/auth_service.dart';
+import 'package:olxapp/auth_screens/login_screen.dart';
 import 'account_subscreens/chat_list_screen.dart';
 import 'account_subscreens/feedback_screen.dart';
 import 'account_subscreens/notifications_screen.dart';
@@ -194,7 +196,13 @@ class AccountScreen extends StatelessWidget {
                       'Log out',
                       Icons.logout_outlined,
                           () {
-                        // Add logout functionality here
+                        AuthService().signOut();
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                            builder: (context) => LoginScreen(),
+                            ),
+                            );
                       },
                     ),
                   ],

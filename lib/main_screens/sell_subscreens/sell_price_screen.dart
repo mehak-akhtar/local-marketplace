@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SellPriceScreen extends StatefulWidget {
-  const SellPriceScreen({Key? key}) : super(key: key);
+  final Map<String, String>? carDetails;
+  const SellPriceScreen({Key? key,this.carDetails}) : super(key: key);
 
   @override
   State<SellPriceScreen> createState() => _SellPriceScreenState();

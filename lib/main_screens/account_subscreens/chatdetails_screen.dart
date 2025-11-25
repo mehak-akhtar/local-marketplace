@@ -141,7 +141,7 @@ class ChatDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
-                          'Hi Ravi, how can I help You',
+                          'Hi Mehak, how can I help You',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 14,

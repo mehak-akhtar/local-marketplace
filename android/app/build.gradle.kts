@@ -42,3 +42,17 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Firebase dependencies - these are auto-managed by FlutterFire
+    // but adding them explicitly for clarity
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+
+    // Multidex support
+    implementation("androidx.multidex:multidex:2.0.1")
+}
+
+// IMPORTANT: Apply Google Services plugin at the END of the file
+apply(plugin = "com.google.gms.google-services")

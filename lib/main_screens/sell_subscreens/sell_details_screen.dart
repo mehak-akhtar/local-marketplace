@@ -1,8 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_price_screen.dart';
 
-class SellDetailsScreen extends StatelessWidget {
+class SellDetailsScreen extends StatefulWidget {
   const SellDetailsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SellDetailsScreen> createState() => _SellDetailsScreenState();
+}
+
+class _SellDetailsScreenState extends State<SellDetailsScreen> {
+  // Map to store all form data
+  final Map<String, String> carDetails = {
+    'Brand': '',
+    'Model': '',
+    'Variant': '',
+    'Year': '',
+    'Transmission Type': '',
+    'Fuel Type': '',
+    'KM Driven': '',
+    'Set Location': '',
+  };
+
+  // Text controllers for each field
+  final Map<String, TextEditingController> controllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controllers for each field
+    carDetails.keys.forEach((key) {
+      controllers[key] = TextEditingController();
+      // Add listener to update the map when text changes
+      controllers[key]!.addListener(() {
+        carDetails[key] = controllers[key]!.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose all controllers
+    controllers.values.forEach((controller) {
+      controller.dispose();
+    });
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,31 +92,37 @@ class SellDetailsScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildDropdownField('Brand'),
+                  _buildTextField('Brand'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Model'),
+                  _buildTextField('Model'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Variant'),
+                  _buildTextField('Variant'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Year'),
+                  _buildTextField('Year'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Transmission Type'),
+                  _buildTextField('Transmission Type'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Fuel Type'),
+                  _buildTextField('Fuel Type'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('KM Driven'),
+                  _buildTextField('KM Driven'),
                   const SizedBox(height: 16),
-                  _buildDropdownField('Set Location'),
+                  _buildTextField('Set Location'),
                   const SizedBox(height: 30),
                   // Get car price Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                        // Print the data (for debugging)
+                        print('Car Details: $carDetails');
+
+                        // Navigate to next screen with the data
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SellPriceScreen(),
+                            builder: (context) => SellPriceScreen(
+                              carDetails: carDetails,
+                            ),
                           ),
                         );
                       },
@@ -104,9 +152,9 @@ class SellDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDropdownField(String label) {
+  Widget _buildTextField(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFE8C87C),
         borderRadius: BorderRadius.circular(8),
@@ -115,29 +163,25 @@ class SellDetailsScreen extends StatelessWidget {
           width: 2,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E3A5F),
-            ),
+      child: TextField(
+        controller: controllers[label],
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1E3A5F),
           ),
-          DropdownButton<String>(
-            isExpanded: true,
-            underline: const SizedBox(),
-            icon: const Icon(
-              Icons.keyboard_arrow_down,
-              color: Color(0xFF1E3A5F),
-            ),
-            items: const [],
-            onChanged: (value) {},
-            hint: const Text(''),
-          ),
-        ],
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        style: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1E3A5F),
+        ),
+        keyboardType: label == 'Year' || label == 'KM Driven'
+            ? TextInputType.number
+            : TextInputType.text,
       ),
     );
   }
