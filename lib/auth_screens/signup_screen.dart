@@ -52,9 +52,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
 
     final auth = ref.read(firebaseAuthProvider);
-    final name = _nameController.text.trim();
+    final name = _nameController.text. trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController. text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
     // Validate email
@@ -65,12 +65,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     // Check if passwords match
     if (password != confirmPassword) {
-      _showSnackBar('❌ Passwords do not match', Colors.red);
+      _showSnackBar('❌ Passwords do not match', Colors. red);
       return;
     }
 
     // Check if password is not empty
-    if (password.isEmpty || confirmPassword.isEmpty) {
+    if (password. isEmpty || confirmPassword.isEmpty) {
       _showSnackBar('❌ Password cannot be empty', Colors.red);
       return;
     }
@@ -79,31 +79,40 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       setState(() => _isLoading = true);
 
       // Create user with email and password
-      await auth.createUserWithEmailAndPassword(
+      UserCredential userCredential = await auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      final user = auth.currentUser;
+      final user = userCredential. user;
 
       if (user != null) {
-        // Update display name
-        await user.updateDisplayName(name);
-        await user.reload();
+        try {
+          // Update display name
+          await user.updateDisplayName(name);
+          await user.reload();
 
-        // Save to Firestore
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'name': name,
-          'email': email,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+          // Save to Firestore - Add more detailed error handling here
+          await _firestore.collection('users').doc(user.uid).set({
+            'uid': user.uid,
+            'name': name,
+            'email': email,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
-        if (mounted) {
-          _showSnackBar('✅ Account Created Successfully', Colors.green);
+          if (mounted) {
+            _showSnackBar('✅ Account Created Successfully', Colors.green);
+          }
+
+          // authStateProvider will automatically detect and navigate
+        } on FirebaseException catch (firestoreError) {
+          // Firestore specific error
+          if (mounted) {
+            _showSnackBar('❌ Database Error: ${firestoreError. message}', Colors.red);
+          }
+          // Optional: Delete the created auth user since Firestore failed
+          await user.delete();
         }
-
-        // authStateProvider will automatically detect and navigate
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -112,7 +121,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('❌ An unexpected error occurred', Colors.red);
+        // Show the actual error message for debugging
+        _showSnackBar('❌ Error: ${e.toString()}', Colors. red);
+        print('SignUp Error: $e'); // Add this for debugging in console
       }
     } finally {
       if (mounted) {

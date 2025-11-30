@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 class FaqScreen extends StatelessWidget {
   const FaqScreen({Key? key}) : super(key: key);
 

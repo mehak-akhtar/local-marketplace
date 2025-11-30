@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_car_details.dart';
 
 class SellOptionsScreen extends StatefulWidget {
-  const SellOptionsScreen({Key? key}) : super(key: key);
+  final Map<String, String> carDetails;
+
+  const SellOptionsScreen({
+    Key? key,
+    required this.carDetails,
+  }) : super(key: key);
 
   @override
   State<SellOptionsScreen> createState() => _SellOptionsScreenState();
@@ -10,6 +15,36 @@ class SellOptionsScreen extends StatefulWidget {
 
 class _SellOptionsScreenState extends State<SellOptionsScreen> {
   int _currentImageIndex = 0;
+  late Map<String, String> updatedCarDetails;
+
+  String? selectedAddress;
+  String? selectedPinCode;
+  bool autoDetectEnabled = false;
+  List<String> uploadedImages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Copy the received map and prepare to add new fields
+    updatedCarDetails = Map<String, String>. from(widget.carDetails);
+
+    print('Car Details in sell_options: $updatedCarDetails');
+  }
+
+  void _updateMapWithOptions() {
+    // Add fields specific to this screen
+    if (selectedAddress != null) {
+      updatedCarDetails['Address'] = selectedAddress!;
+    }
+    if (selectedPinCode != null) {
+      updatedCarDetails['Pin Code'] = selectedPinCode! ;
+    }
+    updatedCarDetails['Auto Detect'] = autoDetectEnabled. toString();
+    updatedCarDetails['Images Uploaded'] = uploadedImages.length.toString();
+    updatedCarDetails['Screen'] = 'Options Screen';
+
+    print('Updated Car Details in sell_options: $updatedCarDetails');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,17 +161,17 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
                                     color: Colors.black.withOpacity(0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.location_on,
                                         color: Colors.white,
                                         size: 14,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Tamilnadu/salem',
-                                        style: TextStyle(
+                                        widget.carDetails['Set Location'] ?? 'Tamilnadu/salem',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11,
                                         ),
@@ -184,27 +219,49 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
                     ),
                     const SizedBox(height: 20),
                     // Action Buttons
-                    _buildActionButton('Address', () {}),
+                    _buildActionButton('Address', () {
+                      setState(() {
+                        selectedAddress = 'Sample Address 123';
+                      });
+                    }),
                     const SizedBox(height: 16),
-                    _buildActionButton('Pin code', () {}),
+                    _buildActionButton('Pin code', () {
+                      setState(() {
+                        selectedPinCode = '636007';
+                      });
+                    }),
                     const SizedBox(height: 16),
-                    _buildActionButton('Auto detect', () {}),
+                    _buildActionButton('Auto detect', () {
+                      setState(() {
+                        autoDetectEnabled = !autoDetectEnabled;
+                      });
+                    }),
                     const SizedBox(height: 16),
-                    _buildActionButton('Upload Image', () {}),
+                    _buildActionButton('Upload Image', () {
+                      setState(() {
+                        uploadedImages.add('image_${uploadedImages.length + 1}');
+                      });
+                    }),
                     const SizedBox(height: 30),
                     // Next Button with Arrow
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          _updateMapWithOptions();
+
+                          print('Navigating to sell_car_details with data: $updatedCarDetails');
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SellCarDetailsScreen(),
+                              builder: (context) => SellCarDetailsScreen(
+                                carDetails: Map<String, String>.from(updatedCarDetails),
+                              ),
                             ),
                           );
                         },
-                        style: ElevatedButton.styleFrom(
+                        style: ElevatedButton. styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -218,7 +275,7 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
                               'Next',
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight. w600,
                                 color: Colors.white,
                               ),
                             ),
@@ -244,12 +301,12 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
 
   Widget _buildActionButton(String text, VoidCallback onPressed) {
     return SizedBox(
-      width: double.infinity,
+      width: double. infinity,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1E3A5F),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets. symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),

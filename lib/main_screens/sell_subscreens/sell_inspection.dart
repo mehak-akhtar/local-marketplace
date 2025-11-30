@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class SellInspectionScreen extends StatefulWidget {
-  const SellInspectionScreen({Key? key}) : super(key: key);
+  final Map<String, String> carDetails;
+
+  const SellInspectionScreen({
+    Key?  key,
+    required this.carDetails,
+  }) : super(key: key);
 
   @override
   State<SellInspectionScreen> createState() => _SellInspectionScreenState();
@@ -12,6 +17,39 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
   String? selectedHub;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  late Map<String, String> finalCarDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    // Copy the received map
+    finalCarDetails = Map<String, String>.from(widget.carDetails);
+
+    print('===== FINAL CAR DETAILS IN INSPECTION SCREEN =====');
+    print(finalCarDetails);
+    print('==================================================');
+  }
+
+  void _prepareForFirestore() {
+    // Add inspection-specific fields
+    if (selectedHub != null) {
+      finalCarDetails['Selected Hub'] = selectedHub! ;
+    }
+    if (selectedDate != null) {
+      finalCarDetails['Inspection Date'] = '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}';
+    }
+    if (selectedTime != null) {
+      finalCarDetails['Inspection Time'] = '${selectedTime!.hour}:${selectedTime!.minute. toString().padLeft(2, '0')}';
+    }
+    finalCarDetails['Screen'] = 'Inspection Screen - FINAL';
+    finalCarDetails['Status'] = 'Ready for Firestore';
+
+    print('===== COMPLETE MAP READY FOR FIRESTORE =====');
+    finalCarDetails.forEach((key, value) {
+      print('$key: $value');
+    });
+    print('============================================');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +105,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                           height: 180,
                           decoration: BoxDecoration(
                             color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius. circular(16),
                           ),
                           child: Stack(
                             children: [
@@ -85,7 +123,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                                 bottom: 0,
                                 child: Center(
                                   child: IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios),
+                                    icon: const Icon(Icons. arrow_back_ios),
                                     color: Colors.white,
                                     onPressed: () {
                                       setState(() {
@@ -125,20 +163,20 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors. black.withOpacity(0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.location_on,
                                         color: Colors.white,
                                         size: 14,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Tamilnadu/salem',
-                                        style: TextStyle(
+                                        widget.carDetails['Set Location'] ??  'Tamilnadu/salem',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11,
                                         ),
@@ -156,7 +194,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                           right: 0,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
+                            children: List. generate(
                               3,
                                   (index) => Container(
                                 margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -218,7 +256,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                           context: context,
                           initialDate: DateTime.now(),
                           firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          lastDate: DateTime. now().add(const Duration(days: 365)),
                         );
                         if (date != null) {
                           setState(() {
@@ -232,7 +270,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                     _buildDateTimePicker(
                       'Select Time',
                       selectedTime != null
-                          ? '${selectedTime!.hour}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+                          ? '${selectedTime!.hour}:${selectedTime!.minute.toString(). padLeft(2, '0')}'
                           : null,
                       Icons.access_time,
                           () async {
@@ -252,7 +290,42 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          _prepareForFirestore();
+
+                          // Show success dialog with all data
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('✅ Success!'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Complete car listing data:',
+                                      style: TextStyle(fontWeight: FontWeight. bold),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ... finalCarDetails.entries.map(
+                                          (entry) => Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2),
+                                        child: Text('${entry.key}: ${entry. value}'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator. pop(context),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -287,7 +360,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
       Function(String?) onChanged,
       ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets. symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -308,7 +381,7 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
             ),
           ),
           icon: const Icon(
-            Icons.keyboard_arrow_down,
+            Icons. keyboard_arrow_down,
             color: Color(0xFF1E3A5F),
           ),
           items: items.map((String item) {

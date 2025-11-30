@@ -31,7 +31,7 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
     carDetails.keys.forEach((key) {
       controllers[key] = TextEditingController();
       // Add listener to update the map when text changes
-      controllers[key]!.addListener(() {
+      controllers[key]! .addListener(() {
         carDetails[key] = controllers[key]!.text;
       });
     });
@@ -57,7 +57,7 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment. spaceBetween,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -66,7 +66,7 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A5F),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius. circular(8),
                     ),
                     child: const Text(
                       'GC',
@@ -114,14 +114,14 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         // Print the data (for debugging)
-                        print('Car Details: $carDetails');
+                        print('Car Details from sell_details_screen: $carDetails');
 
                         // Navigate to next screen with the data
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => SellPriceScreen(
-                              carDetails: carDetails,
+                              carDetails: Map<String, String>.from(carDetails),
                             ),
                           ),
                         );
@@ -180,8 +180,8 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
           color: Color(0xFF1E3A5F),
         ),
         keyboardType: label == 'Year' || label == 'KM Driven'
-            ? TextInputType.number
-            : TextInputType.text,
+            ? TextInputType. number
+            : TextInputType. text,
       ),
     );
   }

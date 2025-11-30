@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:olxapp/main_screens/sell_subscreens/sell_options.dart';
 
 class SellPriceScreen extends StatefulWidget {
-  final Map<String, String>? carDetails;
-  const SellPriceScreen({Key? key,this.carDetails}) : super(key: key);
+  final Map<String, String> carDetails;
+
+  const SellPriceScreen({
+    Key? key,
+    required this.carDetails,
+  }) : super(key: key);
 
   @override
   State<SellPriceScreen> createState() => _SellPriceScreenState();
@@ -10,7 +15,20 @@ class SellPriceScreen extends StatefulWidget {
 
 class _SellPriceScreenState extends State<SellPriceScreen> {
   int _currentImageIndex = 0;
-  final List<String> _customerImages = List.generate(3, (index) => '');
+  late Map<String, String> updatedCarDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    // Copy the received map and prepare to add new fields
+    updatedCarDetails = Map<String, String>.from(widget. carDetails);
+
+    // Add fields specific to this screen
+    updatedCarDetails['Estimated Price'] = 'RS: 25,000,00';
+    updatedCarDetails['Screen'] = 'Price Screen';
+
+    print('Car Details in sell_price_screen: $updatedCarDetails');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,20 +142,20 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black. withOpacity(0.6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.location_on,
                                         color: Colors.white,
                                         size: 14,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Tamilnadu/salem',
-                                        style: TextStyle(
+                                        widget.carDetails['Set Location'] ??  'Tamilnadu/salem',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11,
                                         ),
@@ -197,7 +215,18 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          print('Navigating to sell_options with data: $updatedCarDetails');
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SellOptionsScreen(
+                                carDetails: Map<String, String>.from(updatedCarDetails),
+                              ),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
                           padding: const EdgeInsets.symmetric(vertical: 16),
