@@ -146,12 +146,12 @@ class BuyScreen extends StatelessWidget {
   Widget _buildCarCard(BuildContext context) {
     return GestureDetector(
       onTap: (){
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CarDetailsScreen(),
-        ),
-      );
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => CarDetailsScreen(),
+      //   ),
+      // );
     },
       child: Container(
         decoration: BoxDecoration(
@@ -250,12 +250,12 @@ class BuyScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CarDetailsScreen(),
-                            ),
-                          );
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     builder: (context) => CarDetailsScreen(),
+                          //   ),
+                          // );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),

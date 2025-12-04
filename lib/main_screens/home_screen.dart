@@ -33,6 +33,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     // Watch all cars stream
     final allCarsAsync = ref.watch(allCarsStreamProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -128,7 +129,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius. circular(25),
+                            borderRadius: BorderRadius.circular(25),
                           ),
                           child: TextField(
                             controller: _searchController,
@@ -221,69 +222,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: allCarsAsync.when(
                 data: (allCars) {
                   if (allCars.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No cars available',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF1E3A5F),
-                        ),
-                      ),
-                    );
+                    return _buildEmptyState();
                   }
 
-                  // Group cars by fuel type (or you can group by brand/body type)
-                  final petrolCars = allCars. where((car) =>
-                      (car['Fuel Type'] as String?  ??  '').toLowerCase().contains('petrol')
-                  ). toList();
+                  // Apply search filter
+                  List<Map<String, dynamic>> displayCars = allCars;
+                  if (searchQuery. isNotEmpty) {
+                    final searchLower = searchQuery.toLowerCase();
+                    displayCars = allCars.where((car) {
+                      final carName = (car['Car Name'] as String? ?? '').toLowerCase();
+                      final brand = (car['Brand'] as String? ?? '').toLowerCase();
+                      final model = (car['Model'] as String? ?? '').toLowerCase();
+                      final location = (car['Set Location'] as String? ?? ''). toLowerCase();
 
-                  final dieselCars = allCars.where((car) =>
-                      (car['Fuel Type'] as String? ??  '').toLowerCase().contains('diesel')
+                      return carName.contains(searchLower) ||
+                          brand.contains(searchLower) ||
+                          model.contains(searchLower) ||
+                          location.contains(searchLower);
+                    }).toList();
+                  }
+
+                  if (displayCars.isEmpty) {
+                    return _buildEmptySearchState();
+                  }
+
+                  // ✅ Group cars by fuel type (client-side filtering)
+                  final petrolCars = displayCars.where((car) =>
+                      (car['Fuel Type'] as String? ?? '').toLowerCase().contains('petrol')
                   ).toList();
 
-                  final electricCars = allCars.where((car) =>
+                  final dieselCars = displayCars. where((car) =>
+                      (car['Fuel Type'] as String? ?? '').toLowerCase().contains('diesel')
+                  ).toList();
+
+                  final electricCars = displayCars.where((car) =>
                       (car['Fuel Type'] as String? ?? '').toLowerCase().contains('electric')
                   ).toList();
 
+                  final hybridCars = displayCars. where((car) =>
+                      (car['Fuel Type'] as String? ?? '').toLowerCase().contains('hybrid')
+                  ).toList();
+
                   return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if (petrolCars.isNotEmpty)
-                        _buildCarCategory(
-                          context,
-                          'Petrol Cars',
-                          'Efficient and Popular',
-                          petrolCars,
-                        ),
-                      if (petrolCars.isNotEmpty) const SizedBox(height: 20),
-
-                      if (dieselCars.isNotEmpty)
-                        _buildCarCategory(
-                          context,
-                          'Diesel Cars',
-                          'Powerful and Economical',
-                          dieselCars,
-                        ),
-                      if (dieselCars.isNotEmpty) const SizedBox(height: 20),
-
-                      if (electricCars.isNotEmpty)
-                        _buildCarCategory(
-                          context,
-                          'Electric Cars',
-                          'Eco-Friendly Future',
-                          electricCars,
-                        ),
-                      if (electricCars.isNotEmpty) const SizedBox(height: 20),
-
-                      // Show all remaining cars if any
-                      if (allCars.length > (petrolCars.length + dieselCars.length + electricCars.length))
-                        _buildCarCategory(
-                          context,
-                          'All Cars',
-                          'Browse Our Collection',
-                          allCars,
-                        ),
-                    ],
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                      if (petrolCars.isNotEmpty) ...[
+                  _buildCarCategory(
+                  context,
+                  'Petrol Cars',
+                  'Efficient and Popular',
+                  petrolCars,
+                  ),
+                  const SizedBox(height: 20),
+                  ],
+                  if (dieselCars.isNotEmpty) ...[
+                  _buildCarCategory(
+                  context,
+                  'Diesel Cars',
+                  'Powerful and Economical',
+                  dieselCars,
+                  ),
+                  const SizedBox(height: 20),
+                  ],
+                  if (electricCars. isNotEmpty) ...[
+                  _buildCarCategory(
+                  context,
+                  'Electric Cars',
+                  'Eco-Friendly Future',
+                  electricCars,
+                  ),
+                  const SizedBox(height: 20),
+                  ],
+                  if (hybridCars.isNotEmpty) ...[
+                  _buildCarCategory(
+                  context,
+                  'Hybrid Cars',
+                  'Best of Both Worlds',
+                  hybridCars,
+                  ),
+                  const SizedBox(height: 20),
+                  ],
+                  // Show remaining cars if any
+                  if (displayCars.length > (petrolCars.length + dieselCars.length + electricCars.length + hybridCars. length)) ...[
+                  _buildCarCategory(
+                  context,
+                  'All Cars',
+                  'Browse Our Collection',
+                  displayCars,
+                  ),
+                  ],
+                  ],
                   );
                 },
                 loading: () => const Center(
@@ -291,35 +319,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: Color(0xFF1E3A5F),
                   ),
                 ),
-                error: (error, stack) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 60,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error loading cars',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        error. toString(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors. grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
+                error: (error, stack) => _buildErrorState(error. toString()),
               ),
             ),
           ],
@@ -380,10 +380,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: 12),
         // Car Cards - Horizontal Scroll
         SizedBox(
-          height: 220,
+          height: 240,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: cars.length > 10 ? 10 : cars. length, // Limit to 10 per category
+            itemCount: cars.length > 10 ? 10 : cars.length,
             itemBuilder: (context, index) {
               final car = cars[index];
               return _buildCarCard(context, car);
@@ -400,13 +400,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final fuelType = car['Fuel Type'] ?? 'Unknown';
     final price = car['Final Estimated Price'] ?? car['Estimated Price'] ?? 'N/A';
     final carId = car['id'] ?? '';
+    final status = car['status'] ?? '';
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const CarDetailsScreen(),
+            builder: (context) => CarDetailsScreen(carId: carId),
           ),
         );
       },
@@ -445,20 +446,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: Colors. grey[600],
                     ),
                   ),
-                  Positioned(
+                  const Positioned(
                     top: 8,
                     right: 8,
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO: Add to favorites
-                      },
-                      child: const Icon(
-                        Icons.favorite_border,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                    child: Icon(
+                      Icons.favorite_border,
+                      color: Colors.white,
+                      size: 20,
                     ),
                   ),
+                  // Status badge
+                  if (status.toLowerCase() == 'sold')
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'SOLD',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -479,16 +496,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Location: $location',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors. grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Fuel: $fuelType',
+                    '$location - $fuelType',
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey[600],
@@ -515,7 +523,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const CarDetailsScreen(),
+                            builder: (context) => CarDetailsScreen(carId: carId),
                           ),
                         );
                       },
@@ -533,7 +541,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             'View car',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors. white,
+                              color: Colors.white,
                             ),
                           ),
                           SizedBox(width: 4),
@@ -544,6 +552,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.directions_car_outlined, size: 80, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No cars available',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check back later for new listings',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySearchState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No cars found',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try a different search term',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons. error_outline, size: 80, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            const Text(
+              'Unable to load cars',
+              style: TextStyle(
+                fontSize: 18,
+                color: Color(0xFF1E3A5F),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Please check your internet connection and try again.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

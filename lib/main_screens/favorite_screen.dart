@@ -129,12 +129,12 @@ class FavoritesScreen extends StatelessWidget {
   Widget _buildFavoriteCard(BuildContext context) {
     return GestureDetector(
       onTap: ()  {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const CarDetailsScreen(),
-          ),
-        );
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => const CarDetailsScreen(),
+        //   ),
+        // );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -215,12 +215,12 @@ class FavoritesScreen extends StatelessWidget {
                 // View car Button
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CarDetailsScreen(),
-                      ),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => const CarDetailsScreen(),
+                    //   ),
+                    // );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A5F),

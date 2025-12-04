@@ -1,45 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
-class ChatDetailScreen extends StatefulWidget {
+import '../../providers/auth_provider.dart';
+import '../../providers/chat_provider.dart';
+
+class ChatDetailScreen extends ConsumerStatefulWidget {
   final String name;
   final Color avatarColor;
   final String chatId;
   final String otherUserId;
 
   const ChatDetailScreen({
-    Key? key,
+    Key?  key,
     required this.name,
-    required this. avatarColor,
+    required this.avatarColor,
     required this.chatId,
     required this.otherUserId,
   }) : super(key: key);
 
   @override
-  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
+  ConsumerState<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
 
-class _ChatDetailScreenState extends State<ChatDetailScreen> {
+class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Gemini AI setup - Get your API key from: https://makersuite.google.com/app/apikey
-  static const String _apiKey = 'AIzaSyAJ0S0GUTnZtBO4n2T24YreKWFCcZQWz1M'; // Replace with your API key
+  // Gemini AI setup
+  static const String _apiKey = 'AIzaSyAJ0S0GUTnZtBO4n2T24YreKWFCcZQWz1M';
   late final GenerativeModel _model;
   bool _isAiTyping = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize Gemini AI model
     _model = GenerativeModel(
       model: 'gemini-pro',
       apiKey: _apiKey,
     );
+    _markAsRead();
+  }
+
+  void _markAsRead() async {
+    final currentUser = ref.read(authStateProvider). value;
+    if (currentUser != null) {
+      final chatService = ref.read(chatServiceProvider);
+      await chatService.markMessagesAsRead(widget.chatId, currentUser.uid);
+    }
   }
 
   @override
@@ -50,51 +59,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
+    if (_messageController. text.trim().isEmpty) return;
 
-    final currentUser = _auth.currentUser;
+    final currentUser = ref.read(authStateProvider).value;
     if (currentUser == null) return;
 
+    final chatService = ref. read(chatServiceProvider);
     final messageText = _messageController.text. trim();
     _messageController.clear();
 
     try {
-      // Add user message to Firestore
-      await _firestore
-          .collection('chats')
-          .doc(widget.chatId)
-          .collection('messages')
-          .add({
-        'text': messageText,
-        'senderId': currentUser.uid,
-        'senderName': currentUser.email?.split('@')[0] ?? 'User',
-        'timestamp': FieldValue.serverTimestamp(),
-        'isRead': false,
-      });
-
-      // Update chat metadata
-      await _firestore. collection('chats').doc(widget.chatId).set({
-        'lastMessage': messageText,
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'participants': [currentUser.uid, widget.otherUserId],
-      }, SetOptions(merge: true));
+      await chatService.sendMessage(
+        chatId: widget.chatId,
+        senderId: currentUser. uid,
+        senderName: currentUser.displayName ??  'User',
+        text: messageText,
+      );
 
       _scrollToBottom();
 
       // Trigger AI auto-reply after 1 second
       _generateAiResponse(messageText);
     } catch (e) {
-      debugPrint('Error sending message: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context). showSnackBar(
-          const SnackBar(content: Text('Failed to send message')),
-        );
-      }
+      _showSnackBar('Error sending message: $e');
     }
   }
 
   Future<void> _generateAiResponse(String userMessage) async {
-    // Wait 1 second before responding
     await Future.delayed(const Duration(seconds: 1));
 
     setState(() {
@@ -102,11 +93,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
 
     try {
-      // Create a context-aware prompt for car marketplace conversations
       final prompt = '''
 You are a helpful assistant for GetCars, a car marketplace app. A user just sent you this message: "$userMessage"
 
-Respond in a friendly, helpful way about cars, buying/selling vehicles, or general chat.  Keep responses concise (1-3 sentences).  If they're asking about a specific car or feature, be enthusiastic and helpful.
+Respond in a friendly, helpful way about cars, buying/selling vehicles, or general chat. Keep responses concise (1-3 sentences). If they're asking about a specific car or feature, be enthusiastic and helpful.
 
 Examples:
 - If they ask about a car: Provide helpful info about features, pricing tips, or what to look for
@@ -116,47 +106,32 @@ Examples:
 
 Your response:''';
 
-      final content = [Content.text(prompt)];
-      final response = await _model. generateContent(content);
-      final aiReply = response.text ??  'Sorry, I couldn\'t process that.  Can you try again?';
+      final content = [Content. text(prompt)];
+      final response = await _model.generateContent(content);
+      final aiReply = response.text ??  'Sorry, I couldn\'t process that. Can you try again?';
 
-      // Send AI response to Firestore
-      await _firestore
-          .collection('chats')
-          . doc(widget.chatId)
-          .collection('messages')
-          . add({
-        'text': aiReply,
-        'senderId': widget.otherUserId,
-        'senderName': widget.name,
-        'timestamp': FieldValue.serverTimestamp(),
-        'isRead': false,
-        'isAiGenerated': true, // Mark as AI response
-      });
-
-      // Update chat metadata
-      await _firestore. collection('chats').doc(widget.chatId).set({
-        'lastMessage': aiReply,
-        'lastMessageTime': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final chatService = ref.read(chatServiceProvider);
+      await chatService.sendMessage(
+        chatId: widget.chatId,
+        senderId: widget.otherUserId,
+        senderName: widget.name,
+        text: aiReply,
+        isAiGenerated: true,
+      );
 
       _scrollToBottom();
     } catch (e) {
-      debugPrint('Error generating AI response: $e');
+      print('Error generating AI response: $e');
 
-      // Fallback to simple responses if AI fails
       final fallbackResponse = _getFallbackResponse(userMessage);
-      await _firestore
-          .collection('chats')
-          .doc(widget.chatId)
-          . collection('messages')
-          .add({
-        'text': fallbackResponse,
-        'senderId': widget.otherUserId,
-        'senderName': widget. name,
-        'timestamp': FieldValue.serverTimestamp(),
-        'isRead': false,
-      });
+      final chatService = ref.read(chatServiceProvider);
+      await chatService.sendMessage(
+        chatId: widget.chatId,
+        senderId: widget.otherUserId,
+        senderName: widget.name,
+        text: fallbackResponse,
+        isAiGenerated: false,
+      );
     } finally {
       setState(() {
         _isAiTyping = false;
@@ -170,23 +145,23 @@ Your response:''';
     if (lowerMessage.contains('hello') || lowerMessage.contains('hi') || lowerMessage.contains('hey')) {
       return 'Hello! How can I help you with your car search today?  🚗';
     } else if (lowerMessage.contains('price') || lowerMessage.contains('cost')) {
-      return 'Prices vary by model and condition. You can filter by price range in the search.  What\'s your budget? ';
-    } else if (lowerMessage.contains('buy') || lowerMessage.contains('purchase')) {
-      return 'Great! Browse our listings, favorite the ones you like, and message sellers directly through the app. ';
+      return 'Prices vary by model and condition. You can filter by price range in the search.  What\'s your budget?';
+    } else if (lowerMessage. contains('buy') || lowerMessage.contains('purchase')) {
+      return 'Great!  Browse our listings, favorite the ones you like, and message sellers directly through the app. ';
     } else if (lowerMessage.contains('sell')) {
-      return 'To sell your car, go to the Sell tab, add photos and details, then post your listing. It\'s free!';
+      return 'To sell your car, go to the Sell tab, add photos and details, then post your listing.  It\'s free!';
     } else if (lowerMessage.contains('how are you') || lowerMessage.contains('how r u')) {
       return 'I\'m doing great, thanks for asking! Ready to help you find the perfect car.  What are you looking for?';
     } else {
-      return 'That\'s interesting!  Is there anything specific about cars or our app I can help you with?';
+      return 'That\'s interesting! Is there anything specific about cars or our app I can help you with?';
     }
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+        _scrollController. animateTo(
+          _scrollController. position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -194,16 +169,30 @@ Your response:''';
     }
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF1E3A5F),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    return DateFormat('h:mm a').format(time);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentUserId = _auth.currentUser?. uid;
+    final messagesAsync = ref.watch(chatMessagesProvider(widget.chatId));
+    final currentUser = ref.watch(authStateProvider). value;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8C87C),
       body: SafeArea(
         child: Column(
           children: [
-            // Header with Back Button and Name
+            // Header
             Container(
               color: const Color(0xFFE8C87C),
               padding: const EdgeInsets.all(16),
@@ -238,9 +227,7 @@ Your response:''';
                               Icons.arrow_back,
                               color: Color(0xFF1E3A5F),
                             ),
-                            onPressed: () {
-                              Navigator. pop(context);
-                            },
+                            onPressed: () => Navigator.pop(context),
                           ),
                         ],
                       ),
@@ -249,7 +236,7 @@ Your response:''';
                           Icons.menu,
                           color: Color(0xFF1E3A5F),
                         ),
-                        onPressed: () {},
+                        onPressed: () => _showOptionsMenu(context),
                       ),
                     ],
                   ),
@@ -259,7 +246,7 @@ Your response:''';
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A5F),
-                      borderRadius: BorderRadius. circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
@@ -274,7 +261,6 @@ Your response:''';
                                 size: 24,
                               ),
                             ),
-                            // AI Badge
                             Positioned(
                               bottom: 0,
                               right: 0,
@@ -285,7 +271,7 @@ Your response:''';
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.psychology,
+                                  Icons. psychology,
                                   color: Colors.white,
                                   size: 12,
                                 ),
@@ -315,7 +301,7 @@ Your response:''';
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.purple,
+                                      color: Colors. purple,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Text(
@@ -354,34 +340,15 @@ Your response:''';
                 ],
               ),
             ),
-            // Chat Messages Area with Real-time Updates
+            // Messages List
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    . collection('chats')
-                    .doc(widget.chatId)
-                    .collection('messages')
-                    .orderBy('timestamp', descending: false)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error: ${snapshot.error}'),
-                    );
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  final messages = snapshot.data?.docs ?? [];
-
+              child: messagesAsync.when(
+                data: (messages) {
                   if (messages.isEmpty) {
                     return const Center(
                       child: Text(
-                        'No messages yet.  Start the conversation!',
+                        'No messages yet\nStart the conversation! ',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Color(0xFF1E3A5F),
                           fontSize: 16,
@@ -390,7 +357,7 @@ Your response:''';
                     );
                   }
 
-                  // Auto-scroll to bottom when new message arrives
+                  // Auto-scroll to bottom
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     _scrollToBottom();
                   });
@@ -398,114 +365,96 @@ Your response:''';
                   return ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
+                    reverse: true,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final messageData =
-                      messages[index].data() as Map<String, dynamic>;
-                      final isMe = messageData['senderId'] == currentUserId;
-                      final messageText = messageData['text'] ??  '';
-                      final timestamp = messageData['timestamp'] as Timestamp? ;
-                      final isAiGenerated = messageData['isAiGenerated'] ?? false;
+                      final message = messages[index];
+                      final isMe = message.senderId == currentUser?.uid;
 
-                      String timeString = '';
-                      if (timestamp != null) {
-                        final dateTime = timestamp.toDate();
-                        timeString =
-                        '${dateTime. hour}:${dateTime.minute.toString().padLeft(2, '0')}';
-                      }
-
-                      return Column(
-                        children: [
-                          if (index == 0 ||
-                              _shouldShowTimestamp(messages, index, timestamp))
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Center(
-                                child: Text(
-                                  timeString,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
+                      return Align(
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size. width * 0.7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isMe
+                                ? Colors.white
+                                : message.isAiGenerated
+                                ?  const Color(0xFF2C4A6F)
+                                : const Color(0xFF1E3A5F),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: message.isAiGenerated
+                                ? [
+                              BoxShadow(
+                                color: Colors.purple. withOpacity(0.3),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            ]
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (message.isAiGenerated && !isMe)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(
+                                        Icons.psychology,
+                                        size: 12,
+                                        color: Colors.purpleAccent,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'AI Response',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.purpleAccent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+                              Text(
+                                message.text,
+                                style: TextStyle(
+                                  color: isMe ?  const Color(0xFF1E3A5F) : Colors.white,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                          // Message bubble
-                          Align(
-                            alignment: isMe
-                                ?  Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatTime(message.timestamp),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isMe ? Colors.grey[600] : Colors.grey[300],
+                                ),
                               ),
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                MediaQuery.of(context).size.width * 0.7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isMe
-                                    ? Colors.white
-                                    : isAiGenerated
-                                    ? const Color(0xFF2C4A6F)
-                                    : const Color(0xFF1E3A5F),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: isAiGenerated
-                                    ?  [
-                                  BoxShadow(
-                                    color: Colors.purple.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
-                                  )
-                                ]
-                                    : null,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isAiGenerated && !isMe)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: const [
-                                          Icon(
-                                            Icons.psychology,
-                                            size: 12,
-                                            color: Colors.purpleAccent,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'AI Response',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.purpleAccent,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  Text(
-                                    messageText,
-                                    style: TextStyle(
-                                      color: isMe
-                                          ?  const Color(0xFF1E3A5F)
-                                          : Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       );
                     },
                   );
                 },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF1E3A5F),
+                  ),
+                ),
+                error: (error, stack) => Center(
+                  child: Text('Error: $error'),
+                ),
               ),
             ),
             // Typing indicator
@@ -534,7 +483,7 @@ Your response:''';
                   ],
                 ),
               ),
-            // Message Input Area
+            // Message Input
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -563,10 +512,7 @@ Your response:''';
                   IconButton(
                     icon: const Icon(Icons.attach_file, color: Colors.grey),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Attachment feature coming soon!')),
-                      );
+                      _showSnackBar('Attachment feature coming soon!');
                     },
                   ),
                   IconButton(
@@ -605,17 +551,34 @@ Your response:''';
     );
   }
 
-  bool _shouldShowTimestamp(
-      List<QueryDocumentSnapshot> messages, int index, Timestamp?  timestamp) {
-    if (index == 0 || timestamp == null) return true;
-
-    final prevTimestamp =
-    (messages[index - 1].data() as Map<String, dynamic>)['timestamp']
-    as Timestamp?;
-    if (prevTimestamp == null) return true;
-
-    final timeDiff =
-        timestamp.toDate().difference(prevTimestamp. toDate()).inMinutes;
-    return timeDiff > 5;
+  void _showOptionsMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Delete Chat', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(context);
+                final currentUser = ref.read(authStateProvider).value;
+                if (currentUser != null) {
+                  final chatService = ref.read(chatServiceProvider);
+                  await chatService.deleteChat(widget.chatId, currentUser.uid);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
