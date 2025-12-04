@@ -1,12 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../providers/car_ad_provider.dart';
 import '../filter_screen.dart';
 import 'car_details/car_details.dart';
 
-class BuyScreen extends StatelessWidget {
+class BuyScreen extends ConsumerStatefulWidget {
   const BuyScreen({Key? key}) : super(key: key);
 
   @override
+  ConsumerState<BuyScreen> createState() => _BuyScreenState();
+}
+
+class _BuyScreenState extends ConsumerState<BuyScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = ! _isSearching;
+      if (! _isSearching) {
+        _searchController.clear();
+        ref.read(searchQueryProvider.notifier).clear();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // ✅ Always watch allCarsStreamProvider (async)
+    final carsAsync = ref.watch(allCarsStreamProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -40,91 +71,201 @@ class BuyScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.menu,
-                          color: Color(0xFF1E3A5F),
-                        ),
-                        onPressed: () {
-                          _showFilterBottomSheet(context);
-                        },
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              _isSearching ? Icons.close : Icons.search,
+                              color: const Color(0xFF1E3A5F),
+                            ),
+                            onPressed: _toggleSearch,
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.menu,
+                              color: Color(0xFF1E3A5F),
+                            ),
+                            onPressed: () {
+                              _showFilterBottomSheet(context);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Banner
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD54F),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Choose',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Color(0xFF1E3A5F),
-                                ),
-                              ),
-                              const Text(
-                                'you Favorite Car',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1E3A5F),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1E3A5F),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 10,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Know more',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                  if (_isSearching) ...[
+                    const SizedBox(height: 12),
+                    // Search Bar
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: const Color(0xFF1E3A5F). withOpacity(0.3),
                         ),
-                        const SizedBox(width: 60),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            color: Color(0xFF1E3A5F),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search cars...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                ref
+                                    .read(searchQueryProvider.notifier)
+                                    .setQuery(value);
+                              },
+                            ),
+                          ),
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(
+                                Icons. clear,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                _searchController. clear();
+                                ref.read(searchQueryProvider.notifier). clear();
+                              },
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    // Banner
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD54F),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Choose',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Color(0xFF1E3A5F),
+                                  ),
+                                ),
+                                const Text(
+                                  'you Favorite Car',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1E3A5F),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _showSnackBar('Feature coming soon!');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E3A5F),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Know more',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 60),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            // Car Grid
+            // Car Grid - ✅ FIXED
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.65,
+              child: carsAsync.when(
+                data: (cars) {
+                  // ✅ Apply search filter client-side
+                  List<Map<String, dynamic>> filteredCars = cars;
+
+                  if (searchQuery.isNotEmpty) {
+                    final query = searchQuery.toLowerCase();
+                    filteredCars = cars.where((car) {
+                      final carName = (car['Car Name'] as String?  ??  '').toLowerCase();
+                      final brand = (car['Brand'] as String? ?? '').toLowerCase();
+                      final model = (car['Model'] as String? ?? '').toLowerCase();
+                      final location = (car['Set Location'] as String? ?? ''). toLowerCase();
+
+                      return carName.contains(query) ||
+                          brand.contains(query) ||
+                          model.contains(query) ||
+                          location.contains(query);
+                    }). toList();
+                  }
+
+                  if (filteredCars.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.65,
+                    ),
+                    itemCount: filteredCars. length,
+                    itemBuilder: (context, index) {
+                      return _buildCarCard(context, filteredCars[index]);
+                    },
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF1E3A5F),
+                  ),
                 ),
-                itemCount: 9, // 3x3 grid
-                itemBuilder: (context, index) {
-                  return _buildCarCard(context);
+                error: (error, stack) {
+                  // Check for index error
+                  if (error.toString().contains('index') ||
+                      error.toString().contains('FAILED_PRECONDITION')) {
+                    return _buildIndexErrorState();
+                  }
+                  return _buildErrorState(error. toString());
                 },
               ),
             ),
@@ -139,20 +280,38 @@ class BuyScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(),
+      builder: (context) => const FilterBottomSheet(),
     );
   }
 
-  Widget _buildCarCard(BuildContext context) {
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF1E3A5F),
+      ),
+    );
+  }
+
+  Widget _buildCarCard(BuildContext context, Map<String, dynamic> car) {
+    final carName = car['Car Name'] ??  'Unknown Car';
+    final location = car['Set Location'] ?? 'Unknown';
+    final fuelType = car['Fuel Type'] ??  'Unknown';
+    final price = car['Final Estimated Price'] ?? car['Estimated Price'] ?? 'N/A';
+    final carId = car['id'] ?? '';
+    final status = car['status'] ?? '';
+
     return GestureDetector(
-      onTap: (){
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(
-      //     builder: (context) => CarDetailsScreen(),
-      //   ),
-      // );
-    },
+      onTap: () {
+        if (carId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CarDetailsScreen(carId: carId),
+            ),
+          );
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -163,7 +322,7 @@ class BuyScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey. withOpacity(0.2),
               spreadRadius: 1,
               blurRadius: 5,
             ),
@@ -199,6 +358,29 @@ class BuyScreen extends StatelessWidget {
                       size: 18,
                     ),
                   ),
+                  if (status. toLowerCase() == 'sold')
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'SOLD',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -212,37 +394,45 @@ class BuyScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Audi Q7',
-                          style: TextStyle(
+                        Text(
+                          carName,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1E3A5F),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Location: Dubai',
+                          'Location: $location',
                           style: TextStyle(
                             fontSize: 8,
-                            color: Colors.grey[600],
+                            color: Colors. grey[600],
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          'Fuel: Petrol',
+                          'Fuel: $fuelType',
                           style: TextStyle(
                             fontSize: 8,
                             color: Colors.grey[600],
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'IZS 5 Lakh',
-                          style: TextStyle(
+                        Text(
+                          price,
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1E3A5F),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -250,12 +440,14 @@ class BuyScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (context) => CarDetailsScreen(),
-                          //   ),
-                          // );
+                          if (carId.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CarDetailsScreen(carId: carId),
+                              ),
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
@@ -283,6 +475,103 @@ class BuyScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons. directions_car_outlined,
+            size: 80,
+            color: Colors.grey[300],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _isSearching ? 'No cars found' : 'No cars available',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _isSearching
+                ? 'Try a different search'
+                : 'Check back later for new listings',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndexErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                size: 80, color: Colors.orange[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Database Index Required',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'A Firebase index is needed.  Please check the console logs for the index creation link.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text(
+              'Unable to load cars',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors. grey[800],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Please check your internet connection and try again.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
