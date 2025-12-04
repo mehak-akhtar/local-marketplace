@@ -11,7 +11,7 @@ import 'account_subscreens/feedback_screen.dart';
 import 'account_subscreens/notifications_screen.dart';
 import 'account_subscreens/faq_screen.dart';
 import 'account_subscreens/about_screen.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' as html;
+import 'dart:io';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({Key? key}) : super(key: key);
@@ -22,13 +22,13 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   XFile? _imageFile;
-  String? _profileImageUrl; // Store the Firebase Storage URL
+  String? _profileImageUrl;
   final ImagePicker _picker = ImagePicker();
 
   String? _userEmail;
   String? _userPhone;
   bool _isLoading = true;
-  bool _isUploading = false; // Track upload status
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -40,20 +40,18 @@ class _AccountScreenState extends State<AccountScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Get email from Firebase Auth
         _userEmail = user.email;
 
-        // Get user data from Firestore
         final userDoc = await FirebaseFirestore. instance
             .collection('users')
-            .doc(user.uid)
-            .get();
+            . doc(user.uid)
+            . get();
 
         if (userDoc.exists) {
           final data = userDoc.data();
           setState(() {
             _userPhone = data?['phoneNumber'] ?? 'Not set';
-            _profileImageUrl = data?['profileImageUrl']; // Load saved image URL
+            _profileImageUrl = data?['profileImageUrl'];
             _isLoading = false;
           });
         } else {
@@ -76,7 +74,7 @@ class _AccountScreenState extends State<AccountScreen> {
       final XFile? picked = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
-        maxWidth: 800, // Limit image size for faster upload
+        maxWidth: 800,
         maxHeight: 800,
       );
 
@@ -85,14 +83,15 @@ class _AccountScreenState extends State<AccountScreen> {
           _imageFile = picked;
         });
 
-        // Automatically upload after picking
         await _uploadImageToFirebase(picked);
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to pick image.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to pick image.')),
+        );
+      }
     }
   }
 
@@ -107,39 +106,32 @@ class _AccountScreenState extends State<AccountScreen> {
         throw Exception('No user logged in');
       }
 
-      // Create a unique file path
       final String fileName = 'profile_${user.uid}.jpg';
       final Reference storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_images')
+          . child('profile_images')
           .child(fileName);
 
-      // Upload the file
       UploadTask uploadTask;
 
       if (kIsWeb) {
-        // For web: upload bytes
         final bytes = await imageFile.readAsBytes();
         uploadTask = storageRef.putData(
           bytes,
           SettableMetadata(contentType: 'image/jpeg'),
         );
       } else {
-        // For mobile: upload file
-        uploadTask = storageRef.putFile(html.File(imageFile.path));
+        final file = File(imageFile.path);
+        uploadTask = storageRef.putFile(file);
       }
 
-      // Wait for upload to complete
       final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref. getDownloadURL();
 
-      // Get download URL
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Save URL to Firestore
       await FirebaseFirestore.instance
-          . collection('users')
+          .collection('users')
           . doc(user.uid)
-          . set({
+          .set({
         'profileImageUrl': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -149,30 +141,34 @@ class _AccountScreenState extends State<AccountScreen> {
         _isUploading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile image uploaded successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile image uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error uploading image: $e');
       setState(() {
         _isUploading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to upload image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _showEmailDialog() async {
     final TextEditingController emailController = TextEditingController(
-      text: _userEmail ?? '',
+      text: _userEmail ??  '',
     );
 
     return showDialog(
@@ -180,7 +176,7 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Update Email'),
         content: Column(
-          mainAxisSize: MainAxisSize. min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: emailController,
@@ -205,7 +201,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _updateEmail(emailController.text.trim());
+              await _updateEmail(emailController.text. trim());
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -220,9 +216,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _updateEmail(String newEmail) async {
     if (newEmail.isEmpty || ! newEmail.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context). showSnackBar(
+          const SnackBar(content: Text('Please enter a valid email address.')),
+        );
+      }
       return;
     }
 
@@ -239,25 +237,31 @@ class _AccountScreenState extends State<AccountScreen> {
           _userEmail = newEmail;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email updated successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email updated successfully!')),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Failed to update email.  ';
+      String message = 'Failed to update email. ';
       if (e.code == 'requires-recent-login') {
         message = 'Please log out and log back in to update your email.';
       } else if (e.code == 'email-already-in-use') {
         message = 'This email is already in use.';
       }
-      ScaffoldMessenger. of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
     } catch (e) {
       debugPrint('Error updating email: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('An error occurred.')),
+        );
+      }
     }
   }
 
@@ -302,14 +306,16 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _updatePhoneNumber(String newPhone) async {
     if (newPhone.isEmpty) {
-      ScaffoldMessenger. of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a phone number.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger. of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a phone number.')),
+        );
+      }
       return;
     }
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance. currentUser;
       if (user != null) {
         await FirebaseFirestore.instance
             . collection('users')
@@ -320,20 +326,23 @@ class _AccountScreenState extends State<AccountScreen> {
           _userPhone = newPhone;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone number updated successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phone number updated successfully!')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error updating phone number: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update phone number.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update phone number.')),
+        );
+      }
     }
   }
 
   Widget _buildProfileImage() {
-    // Show loading indicator while uploading
     if (_isUploading) {
       return Container(
         color: const Color(0xFF1E3A5F),
@@ -345,7 +354,6 @@ class _AccountScreenState extends State<AccountScreen> {
       );
     }
 
-    // Show uploaded image from Firebase Storage
     if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
       return Image.network(
         _profileImageUrl!,
@@ -376,7 +384,6 @@ class _AccountScreenState extends State<AccountScreen> {
       );
     }
 
-    // Show temporarily picked image (before upload completes)
     if (_imageFile != null) {
       if (kIsWeb) {
         return FutureBuilder<Uint8List>(
@@ -403,7 +410,7 @@ class _AccountScreenState extends State<AccountScreen> {
         );
       } else {
         return Image.file(
-          html.File(_imageFile!.path),
+          File(_imageFile!.path),
           fit: BoxFit.cover,
           width: 120,
           height: 120,
@@ -411,15 +418,36 @@ class _AccountScreenState extends State<AccountScreen> {
       }
     }
 
-    // Default avatar
     return Container(
       color: const Color(0xFF1E3A5F),
       child: const Icon(
-        Icons.person,
+        Icons. person,
         size: 70,
         color: Color(0xFFE8C87C),
       ),
     );
+  }
+
+  void _handleLogout() async {
+    try {
+      await AuthService().signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error logging out: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to log out. Please try again.')),
+        );
+      }
+    }
   }
 
   @override
@@ -428,13 +456,13 @@ class _AccountScreenState extends State<AccountScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: _isLoading
-            ?  const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
           child: Column(
             children: [
               // Header Section with Profile
               Container(
-                width: double. infinity,
+                width: double.infinity,
                 color: const Color(0xFFE8C87C),
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -446,7 +474,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets. symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 6,
                               ),
@@ -497,7 +525,6 @@ class _AccountScreenState extends State<AccountScreen> {
                             child: _buildProfileImage(),
                           ),
                         ),
-                        // Upload progress indicator badge
                         if (_isUploading)
                           Positioned(
                             bottom: 0,
@@ -522,7 +549,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     TextButton(
                       onPressed: _isUploading ? null : _pickImageFromGallery,
                       child: Text(
-                        _isUploading ? 'Uploading.. .' : 'Upload Image',
+                        _isUploading ? 'Uploading...' : 'Upload Image',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -539,14 +566,14 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               // Menu Items
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets. all(20),
                 child: Column(
                   children: [
                     _buildInfoMenuItem(
                       context,
                       'E Mail ID',
                       Icons.email_outlined,
-                      _userEmail ??  'Not set',
+                      _userEmail ?? 'Not set',
                       _showEmailDialog,
                     ),
                     const SizedBox(height: 12),
@@ -591,7 +618,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       'Notifications',
                       Icons.notifications_outlined,
                           () {
-                        Navigator.push(
+                        Navigator. push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
@@ -633,15 +660,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       context,
                       'Log out',
                       Icons.logout_outlined,
-                          () {
-                        AuthService().signOut();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LoginScreen(),
-                          ),
-                        );
-                      },
+                      _handleLogout,
                     ),
                   ],
                 ),
@@ -684,7 +703,7 @@ class _AccountScreenState extends State<AccountScreen> {
               vertical: 16,
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment. spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(

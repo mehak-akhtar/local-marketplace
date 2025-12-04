@@ -1,13 +1,39 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../filter_screen.dart';
+import '../providers/car_ad_provider.dart';
 import 'car_details/car_details.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const FilterBottomSheet(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Watch all cars stream
+    final allCarsAsync = ref.watch(allCarsStreamProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -69,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: const EdgeInsets. symmetric(
                               horizontal: 16,
                               vertical: 8,
                             ),
@@ -98,16 +124,23 @@ class HomeScreen extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 12,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius. circular(25),
                           ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.search, color: Color(0xFF1E3A5F)),
-                            ],
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: const InputDecoration(
+                              hintText: 'Search cars.. .',
+                              border: InputBorder.none,
+                              icon: Icon(Icons.search, color: Color(0xFF1E3A5F)),
+                            ),
+                            onChanged: (value) {
+                              // Update search query
+                              ref.read(searchQueryProvider.notifier).setQuery(value);
+                            },
                           ),
                         ),
                       ),
@@ -137,13 +170,6 @@ class HomeScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFD54F),
                       borderRadius: BorderRadius.circular(16),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://placeholder.com/banner',
-                        ),
-                        fit: BoxFit.cover,
-                        opacity: 0.3,
-                      ),
                     ),
                     child: Row(
                       children: [
@@ -190,17 +216,110 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Car Categories
+            // Car Categories with Real Data
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildCarCategory(context,'SUV Cars', 'Spacious and Powerful SUVs'),
-                  const SizedBox(height: 20),
-                  _buildCarCategory(context,'Sedan Cars', 'Luxury and Comfort Cars'),
-                  const SizedBox(height: 20),
-                  _buildCarCategory(context,'Hatchback Cars', 'Compact and Efficient Cars'),
-                ],
+              child: allCarsAsync.when(
+                data: (allCars) {
+                  if (allCars.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No cars available',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF1E3A5F),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Group cars by fuel type (or you can group by brand/body type)
+                  final petrolCars = allCars. where((car) =>
+                      (car['Fuel Type'] as String?  ??  '').toLowerCase().contains('petrol')
+                  ). toList();
+
+                  final dieselCars = allCars.where((car) =>
+                      (car['Fuel Type'] as String? ??  '').toLowerCase().contains('diesel')
+                  ).toList();
+
+                  final electricCars = allCars.where((car) =>
+                      (car['Fuel Type'] as String? ?? '').toLowerCase().contains('electric')
+                  ).toList();
+
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (petrolCars.isNotEmpty)
+                        _buildCarCategory(
+                          context,
+                          'Petrol Cars',
+                          'Efficient and Popular',
+                          petrolCars,
+                        ),
+                      if (petrolCars.isNotEmpty) const SizedBox(height: 20),
+
+                      if (dieselCars.isNotEmpty)
+                        _buildCarCategory(
+                          context,
+                          'Diesel Cars',
+                          'Powerful and Economical',
+                          dieselCars,
+                        ),
+                      if (dieselCars.isNotEmpty) const SizedBox(height: 20),
+
+                      if (electricCars.isNotEmpty)
+                        _buildCarCategory(
+                          context,
+                          'Electric Cars',
+                          'Eco-Friendly Future',
+                          electricCars,
+                        ),
+                      if (electricCars.isNotEmpty) const SizedBox(height: 20),
+
+                      // Show all remaining cars if any
+                      if (allCars.length > (petrolCars.length + dieselCars.length + electricCars.length))
+                        _buildCarCategory(
+                          context,
+                          'All Cars',
+                          'Browse Our Collection',
+                          allCars,
+                        ),
+                    ],
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF1E3A5F),
+                  ),
+                ),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 60,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading cars',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        error. toString(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors. grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -209,16 +328,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _showFilterBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(),
-    );
-  }
-
-  Widget _buildCarCategory(BuildContext context, String title, String subtitle) {
+  Widget _buildCarCategory(
+      BuildContext context,
+      String title,
+      String subtitle,
+      List<Map<String, dynamic>> cars,
+      ) {
     return Column(
       children: [
         // Category Header
@@ -251,37 +366,47 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Icon(
-                Icons.menu,
-                color: Color(0xFF1E3A5F),
+              Text(
+                '${cars.length} cars',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E3A5F),
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        // Car Cards
+        // Car Cards - Horizontal Scroll
         SizedBox(
           height: 220,
-          child: ListView(
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            children: [
-              _buildCarCard(context, 'Audi Q7', 'Location: Dubai - Fuel: Petrol', 'IZS 5 Lakh'),
-              _buildCarCard(context, 'Audi Q3', 'Location: Dubai - Fuel: Petrol', 'IZS 5 Lakh'),
-              _buildCarCard(context, 'Audi Q5', 'Location: Dubai - Fuel: Petrol', 'IZS 5 Lakh'),
-            ],
+            itemCount: cars.length > 10 ? 10 : cars. length, // Limit to 10 per category
+            itemBuilder: (context, index) {
+              final car = cars[index];
+              return _buildCarCard(context, car);
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCarCard(BuildContext context,String name, String details, String price) {
+  Widget _buildCarCard(BuildContext context, Map<String, dynamic> car) {
+    final carName = car['Car Name'] ??  '${car['Brand']} ${car['Model']}';
+    final location = car['Set Location'] ?? 'Unknown';
+    final fuelType = car['Fuel Type'] ?? 'Unknown';
+    final price = car['Final Estimated Price'] ?? car['Estimated Price'] ?? 'N/A';
+    final carId = car['id'] ?? '';
+
     return GestureDetector(
-      onTap: (){
+      onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CarDetailsScreen(),
+            builder: (context) => const CarDetailsScreen(),
           ),
         );
       },
@@ -293,7 +418,7 @@ class HomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey. withOpacity(0.2),
               spreadRadius: 1,
               blurRadius: 5,
             ),
@@ -317,16 +442,21 @@ class HomeScreen extends StatelessWidget {
                     child: Icon(
                       Icons.directions_car,
                       size: 50,
-                      color: Colors.grey[600],
+                      color: Colors. grey[600],
                     ),
                   ),
-                  const Positioned(
+                  Positioned(
                     top: 8,
                     right: 8,
-                    child: Icon(
-                      Icons.favorite_border,
-                      color: Colors.white,
-                      size: 20,
+                    child: GestureDetector(
+                      onTap: () {
+                        // TODO: Add to favorites
+                      },
+                      child: const Icon(
+                        Icons.favorite_border,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -338,20 +468,33 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    carName,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1E3A5F),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    details,
+                    'Location: $location',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors. grey[600],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Fuel: $fuelType',
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey[600],
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -361,6 +504,8 @@ class HomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1E3A5F),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -370,7 +515,7 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => CarDetailsScreen(),
+                            builder: (context) => const CarDetailsScreen(),
                           ),
                         );
                       },
@@ -388,7 +533,7 @@ class HomeScreen extends StatelessWidget {
                             'View car',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white,
+                              color: Colors. white,
                             ),
                           ),
                           SizedBox(width: 4),

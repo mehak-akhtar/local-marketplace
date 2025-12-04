@@ -1,7 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class FeedbackScreen extends StatelessWidget {
+class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({Key? key}) : super(key: key);
+
+  @override
+  State<FeedbackScreen> createState() => _FeedbackScreenState();
+}
+
+class _FeedbackScreenState extends State<FeedbackScreen> {
+  final TextEditingController _feedbackController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitFeedback() async {
+    if (_feedbackController.text. trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please write your feedback before submitting'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('No user logged in');
+      }
+
+      // Save feedback to Firestore
+      await _firestore.collection('feedback').add({
+        'userId': currentUser.uid,
+        'userEmail': currentUser.email,
+        'feedback': _feedbackController.text. trim(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending', // Can be: pending, reviewed, resolved
+      });
+
+      // Clear the text field
+      _feedbackController. clear();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context). showSnackBar(
+          const SnackBar(
+            content: Text('Thank you!  Your feedback has been submitted successfully.'),
+            backgroundColor: Colors. green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Optional: Navigate back after successful submission
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator. pop(context);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error submitting feedback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit feedback: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +111,13 @@ class FeedbackScreen extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E3A5F),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius. circular(8),
                         ),
                         child: const Text(
                           'GC',
                           style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight. bold,
                             color: Color(0xFFE8C87C),
                           ),
                         ),
@@ -108,7 +194,7 @@ class FeedbackScreen extends StatelessWidget {
                       height: 250,
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8C87C),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius. circular(16),
                         border: Border.all(
                           color: const Color(0xFF1E3A5F),
                           width: 2,
@@ -117,12 +203,14 @@ class FeedbackScreen extends StatelessWidget {
                       child: Stack(
                         children: [
                           TextField(
+                            controller: _feedbackController,
                             maxLines: null,
                             expands: true,
+                            enabled: !_isSubmitting,
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.all(16),
-                              hintText: '',
+                              contentPadding: const EdgeInsets. all(16),
+                              hintText: 'Share your thoughts with us...',
                               hintStyle: TextStyle(
                                 color: Colors.grey[400],
                               ),
@@ -138,8 +226,8 @@ class FeedbackScreen extends StatelessWidget {
                             right: 20,
                             child: Icon(
                               Icons.edit,
-                              size: 80,
-                              color: const Color(0xFF1E3A5F).withOpacity(0.3),
+                              color: Colors.grey[400],
+                              size: 40,
                             ),
                           ),
                         ],
@@ -149,20 +237,30 @@ class FeedbackScreen extends StatelessWidget {
                     // Submit Button
                     SizedBox(
                       width: double.infinity,
+                      height: 56,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isSubmitting ? null : _submitFeedback,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(28),
                           ),
+                          elevation: 4,
                         ),
-                        child: const Text(
+                        child: _isSubmitting
+                            ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFE8C87C),
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : const Text(
                           'Submit',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
