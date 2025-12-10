@@ -1,17 +1,21 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import '../filter_screen.dart';
 import '../providers/car_ad_provider.dart';
 import 'car_details/car_details.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final PersistentTabController controller;
+  const HomeScreen({Key? key, required this.controller}) : super(key: key, );
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -72,44 +76,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       // Buy and Sell Buttons
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFF1E3A5F),
-                                width: 2,
+                          InkWell(
+                            onTap: (){
+                              widget.controller.jumpToTab(1);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
                               ),
-                            ),
-                            child: const Text(
-                              'Buy',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1E3A5F),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF1E3A5F),
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Text(
+                                'Buy',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E3A5F),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets. symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD54F),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'Sell',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1E3A5F),
+                          InkWell(
+                            onTap: (){
+                              widget.controller.jumpToTab(3);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets. symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD54F),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'Sell',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E3A5F),
+                                ),
                               ),
                             ),
                           ),
@@ -195,7 +209,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () async {
+                                  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+                                  // final Map<String, dynamic> carListing = {
+                                  //   "Auto Detect": "false",
+                                  //   "Brand": "Toyota",
+                                  //   "Car Name": "Toyota Fortuner Legender",
+                                  //   "Engine Capacity": "2755 cc",
+                                  //   "Final Estimated Price": "RS: 22,500,000",
+                                  //   "Fuel Type": "Diesel",
+                                  //   "Images Uploaded": "3",
+                                  //   "KM Driven": "12000",
+                                  //   "Model": "Fortuner",
+                                  //   "Price": "22500000",
+                                  //   "Screen": "Car Details Screen",
+                                  //   "Set Location": "Islamabad, Pakistan",
+                                  //   "Transmission Type": "Automatic",
+                                  //   "Variant": "Legender 4x4",
+                                  //   "Year": "2023",
+                                  //   "image_count": 3, // This is a number (int) based on your input
+                                  //   "listed_at": DateTime.now(), // Uses DateTime for the timestamp
+                                  //   "seller_email": "ahmed.ali@example.com",
+                                  //   "seller_name": "Ahmed Ali",
+                                  //   "seller_uid": "Tx83Jdk29LpV4xI0votrzdRM99",
+                                  //   "status": "active",
+                                  // };
+                                  // try {
+                                  //   await _firestore.collection('global').add(carListing);
+                                  //   print('✅ Event added successfully!');
+                                  // } catch (e) {
+                                  //   print('❌ Error adding event: $e');
+                                  //   rethrow;
+                                  // }
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1E3A5F),
                                   shape: RoundedRectangleBorder(
@@ -444,15 +490,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Icons.directions_car,
                       size: 50,
                       color: Colors. grey[600],
-                    ),
-                  ),
-                  const Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Icon(
-                      Icons.favorite_border,
-                      color: Colors.white,
-                      size: 20,
                     ),
                   ),
                   // Status badge

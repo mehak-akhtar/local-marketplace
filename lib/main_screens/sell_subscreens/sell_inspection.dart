@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SellInspectionScreen extends StatefulWidget {
-  final Map<String, String> carDetails;
+  final Map<String, dynamic> carDetails;
 
   const SellInspectionScreen({
     Key?  key,
@@ -17,13 +17,13 @@ class _SellInspectionScreenState extends State<SellInspectionScreen> {
   String? selectedHub;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
-  late Map<String, String> finalCarDetails;
+  late Map<String, dynamic> finalCarDetails;
 
   @override
   void initState() {
     super.initState();
     // Copy the received map
-    finalCarDetails = Map<String, String>.from(widget.carDetails);
+    finalCarDetails = Map<String, dynamic>.from(widget.carDetails);
 
     print('===== FINAL CAR DETAILS IN INSPECTION SCREEN =====');
     print(finalCarDetails);

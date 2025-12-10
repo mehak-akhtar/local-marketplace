@@ -16,18 +16,21 @@ class PersistentNavWrapper extends StatefulWidget {
 class _PersistentNavWrapperState extends State<PersistentNavWrapper> {
   late PersistentTabController _controller;
 
+
+
   @override
   void initState() {
     super.initState();
     _controller = PersistentTabController(initialIndex: 0);
+
   }
 
   List<Widget> _buildScreens() {
     return [
-      HomeScreen(),
-      BuyScreen(),
+      HomeScreen(controller: _controller),
+      BuyScreen(controller: _controller),
       FavoritesScreen(),
-      SellScreen(),
+      SellScreen(controller: _controller),
       AccountScreen(),
     ];
   }

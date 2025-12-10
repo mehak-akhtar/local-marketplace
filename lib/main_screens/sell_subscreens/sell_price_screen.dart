@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_options.dart';
 
 class SellPriceScreen extends StatefulWidget {
-  final Map<String, String> carDetails;
+  // Accept a dynamic map so we can store lists (images) and numbers/strings
+  final Map<String, dynamic> carDetails;
 
   const SellPriceScreen({
     Key? key,
@@ -14,20 +16,53 @@ class SellPriceScreen extends StatefulWidget {
 }
 
 class _SellPriceScreenState extends State<SellPriceScreen> {
-  int _currentImageIndex = 0;
-  late Map<String, String> updatedCarDetails;
+  late Map<String, dynamic> updatedCarDetails;
+  final TextEditingController _priceController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Copy the received map and prepare to add new fields
-    updatedCarDetails = Map<String, String>.from(widget. carDetails);
+    // copy incoming map so we don't mutate the original reference unexpectedly
+    updatedCarDetails = Map<String, dynamic>. from(widget.carDetails);
 
-    // Add fields specific to this screen
-    updatedCarDetails['Estimated Price'] = 'RS: 25,000,00';
+    // If there's an estimated price, prefill it in the price field
+    final existingPrice = (updatedCarDetails['Estimated Price'] ?? updatedCarDetails['EstimatedPrice'] ?? '').toString();
+    if (existingPrice.isNotEmpty) {
+      _priceController.text = existingPrice;
+    }
+
+    // mark screen for debugging
     updatedCarDetails['Screen'] = 'Price Screen';
+  }
 
-    print('Car Details in sell_price_screen: $updatedCarDetails');
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  // Navigate to next screen and pass updated map
+  void _goToSellOptions() {
+    // set the price (user-entered)
+    final priceInput = _priceController.text.trim();
+    if (priceInput.isNotEmpty) {
+      updatedCarDetails['Price'] = priceInput;
+    } else {
+      // remove existing key if empty
+      updatedCarDetails.remove('Price');
+    }
+
+    // debug print
+    debugPrint('Navigating to sell_options with data: $updatedCarDetails');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SellOptionsScreen(
+          carDetails: Map<String, dynamic>.from(updatedCarDetails),
+        ),
+      ),
+    );
   }
 
   @override
@@ -44,29 +79,19 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A5F),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'GC',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE8C87C),
-                      ),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFE8C87C)),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                      color: Color(0xFF1E3A5F),
-                    ),
-                    onPressed: () {},
+                    icon: const Icon(Icons.menu, color: Color(0xFF1E3A5F)),
+                    onPressed:  () {},
                   ),
                 ],
               ),
@@ -77,137 +102,22 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Car Image Slider
-                    Stack(
-                      children: [
-                        Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: Icon(
-                                  Icons.directions_car,
-                                  size: 80,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              // Navigation Arrows
-                              Positioned(
-                                left: 8,
-                                top: 0,
-                                bottom: 0,
-                                child: Center(
-                                  child: IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios),
-                                    color: Colors.white,
-                                    onPressed: () {
-                                      setState(() {
-                                        if (_currentImageIndex > 0) {
-                                          _currentImageIndex--;
-                                        }
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                right: 8,
-                                top: 0,
-                                bottom: 0,
-                                child: Center(
-                                  child: IconButton(
-                                    icon: const Icon(Icons.arrow_forward_ios),
-                                    color: Colors.white,
-                                    onPressed: () {
-                                      setState(() {
-                                        if (_currentImageIndex < 2) {
-                                          _currentImageIndex++;
-                                        }
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              // Location Badge
-                              Positioned(
-                                bottom: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black. withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.location_on,
-                                        color: Colors.white,
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.carDetails['Set Location'] ??  'Tamilnadu/salem',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              3,
-                                  (index) => Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: index == _currentImageIndex
-                                      ? const Color(0xFF1E3A5F)
-                                      : Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 30),
                     // Price Section
                     const Text(
                       'Sell your car up to',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E3A5F),
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight:  FontWeight.w600, color: Color(0xFF1E3A5F)),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'RS: 25,000,00',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3A5F),
+                    TextField(
+                      controller: _priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        prefixText:  'RS: ',
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Enter your asking price',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -215,54 +125,33 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          print('Navigating to sell_options with data: $updatedCarDetails');
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SellOptionsScreen(
-                                carDetails: Map<String, String>.from(updatedCarDetails),
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: _goToSellOptions,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
+                          padding: const EdgeInsets. symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                         ),
                         child: const Text(
                           'Book for free inspection',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight. w600, color: Colors.white),
                         ),
                       ),
                     ),
                     const SizedBox(height: 30),
                     // Happy customer Section
                     const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
+                      alignment: Alignment. centerLeft,
+                      child:  Text(
                         'Happy customer',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E3A5F),
-                        ),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E3A5F)),
                       ),
                     ),
                     const SizedBox(height: 16),
                     // Customer Images
                     SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                      scrollDirection: Axis. horizontal,
                       child: Row(
-                        children: List.generate(
+                        children: List. generate(
                           3,
                               (index) => Container(
                             width: 120,
@@ -273,11 +162,7 @@ class _SellPriceScreenState extends State<SellPriceScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Center(
-                              child: Icon(
-                                Icons.person,
-                                size: 40,
-                                color: Color(0xFFE8C87C),
-                              ),
+                              child: Icon(Icons.person, size: 40, color: Color(0xFFE8C87C)),
                             ),
                           ),
                         ),

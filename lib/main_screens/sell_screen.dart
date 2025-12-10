@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_details_screen.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 class SellScreen extends StatefulWidget {
-  const SellScreen({Key? key}) : super(key: key);
+  final PersistentTabController controller;
+  const SellScreen({Key? key, required this.controller}) : super(key: key);
 
   @override
   State<SellScreen> createState() => _SellScreenState();
@@ -58,21 +60,26 @@ class _SellScreenState extends State<SellScreen> {
                     ),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFD54F),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'Buy',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1E3A5F),
+                        InkWell(
+                          onTap: (){
+                            widget.controller.jumpToTab(1);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD54F),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'Buy',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E3A5F),
+                              ),
                             ),
                           ),
                         ),

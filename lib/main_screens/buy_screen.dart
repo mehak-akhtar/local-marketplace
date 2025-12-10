@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import '../../providers/car_ad_provider.dart';
 import '../filter_screen.dart';
 import 'car_details/car_details.dart';
 
 class BuyScreen extends ConsumerStatefulWidget {
-  const BuyScreen({Key? key}) : super(key: key);
+  final PersistentTabController controller;
+  const BuyScreen({Key? key, required this.controller}) : super(key: key);
 
   @override
   ConsumerState<BuyScreen> createState() => _BuyScreenState();
@@ -333,7 +335,7 @@ class _BuyScreenState extends ConsumerState<BuyScreen> {
           children: [
             // Car Image
             Container(
-              height: 80,
+              height: 60,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: const BorderRadius.vertical(
@@ -345,23 +347,14 @@ class _BuyScreenState extends ConsumerState<BuyScreen> {
                   Center(
                     child: Icon(
                       Icons.directions_car,
-                      size: 40,
+                      size: 35,
                       color: Colors.grey[600],
-                    ),
-                  ),
-                  const Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Icon(
-                      Icons.favorite_border,
-                      color: Colors.white,
-                      size: 18,
                     ),
                   ),
                   if (status. toLowerCase() == 'sold')
                     Positioned(
-                      top: 6,
-                      left: 6,
+                      top: 4,
+                      left: 4,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -438,6 +431,7 @@ class _BuyScreenState extends ConsumerState<BuyScreen> {
                     ),
                     SizedBox(
                       width: double.infinity,
+                      height: 27,
                       child: ElevatedButton(
                         onPressed: () {
                           if (carId.isNotEmpty) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_car_details.dart';
 
 class SellOptionsScreen extends StatefulWidget {
-  final Map<String, String> carDetails;
+  final Map<String, dynamic> carDetails;
 
   const SellOptionsScreen({
     Key? key,
@@ -15,7 +15,7 @@ class SellOptionsScreen extends StatefulWidget {
 
 class _SellOptionsScreenState extends State<SellOptionsScreen> {
   int _currentImageIndex = 0;
-  late Map<String, String> updatedCarDetails;
+  late Map<String, dynamic> updatedCarDetails;
 
   String? selectedAddress;
   String? selectedPinCode;
@@ -26,7 +26,7 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
   void initState() {
     super.initState();
     // Copy the received map and prepare to add new fields
-    updatedCarDetails = Map<String, String>. from(widget.carDetails);
+    updatedCarDetails = Map<String, dynamic>. from(widget.carDetails);
 
     print('Car Details in sell_options: $updatedCarDetails');
   }
@@ -256,7 +256,7 @@ class _SellOptionsScreenState extends State<SellOptionsScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => SellCarDetailsScreen(
-                                carDetails: Map<String, String>.from(updatedCarDetails),
+                                carDetails: Map<String, dynamic>.from(updatedCarDetails),
                               ),
                             ),
                           );

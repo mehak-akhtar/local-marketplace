@@ -1,11 +1,11 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:olxapp/main_screens/sell_subscreens/sell_inspection.dart';
-import 'package:olxapp/main_screens/sell_subscreens/sell_inspection.dart';
 
 class SellCarDetailsScreen extends StatefulWidget {
-  final Map<String, String> carDetails;
+  final Map<String, dynamic> carDetails;
 
   const SellCarDetailsScreen({Key? key, required this.carDetails})
       : super(key: key);
@@ -16,14 +16,14 @@ class SellCarDetailsScreen extends StatefulWidget {
 
 class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
   int _currentImageIndex = 0;
-  late Map<String, String> updatedCarDetails;
+  late Map<String, dynamic> updatedCarDetails;
   bool _isListingCar = false; // Loading state
 
   @override
   void initState() {
     super.initState();
     // Copy the received map and prepare to add new fields
-    updatedCarDetails = Map<String, String>.from(widget. carDetails);
+    updatedCarDetails = Map<String, dynamic>.from(widget. carDetails);
 
     // Add fields specific to this screen
     updatedCarDetails['Car Name'] = 'Mercedes-Benz GLA';
@@ -31,7 +31,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
     updatedCarDetails['Final Estimated Price'] = 'RS: 18,000,00';
     updatedCarDetails['Screen'] = 'Car Details Screen';
 
-    print('Car Details in sell_car_details: $updatedCarDetails');
+    print('Car Details in sell_car_details:  $updatedCarDetails');
   }
 
   // Validate required fields
@@ -62,7 +62,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
       }
 
       // Get user data from Firestore
-      final userDoc = await FirebaseFirestore. instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
@@ -71,8 +71,8 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         // If user document doesn't exist, use basic auth data
         return {
           'seller_uid': user.uid,
-          'seller_name': user.displayName ?? 'Unknown User',
-          'seller_email': user.email ?? '',
+          'seller_name': user.displayName ??  'Unknown User',
+          'seller_email':  user.email ?? '',
         };
       }
 
@@ -82,7 +82,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
       return {
         'seller_uid': user.uid,
         'seller_name': userData['name'] ?? user.displayName ?? 'Unknown User',
-        'seller_email': user.email ?? '',
+        'seller_email':  user.email ?? '',
       };
     } catch (e) {
       print('❌ Error getting user data: $e');
@@ -92,102 +92,73 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
 
   // List car to Firestore with proper error handling
   Future<void> _listCarToFirestore() async {
-    // Validate first
-    if (!_validateCarDetails()) {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+    // Check if car details are empty
+    if (updatedCarDetails.isEmpty) {
+      updatedCarDetails['createdAt']=FieldValue.serverTimestamp();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Car details are empty.  Please fill in all required fields.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
       return;
     }
-
-    // Show loading state
-    setState(() {
-      _isListingCar = true;
-    });
-
     try {
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-      // Get current user data
-      Map<String, dynamic> sellerData;
-      try {
-        sellerData = await _getCurrentUserData();
-      } catch (e) {
-        if (mounted) {
-          _showSnackBar(
-            '❌ Please login to list a car',
-            Colors.red,
-          );
-        }
-        return;
-      }
+      await _firestore.collection('global').add(updatedCarDetails);
 
-      // Add timestamp and user data to the car details
-      Map<String, dynamic> carDataWithTimestamp = {
-        ...updatedCarDetails,
-        ... sellerData, // Add seller_uid, seller_name, seller_email
-        'listed_at': FieldValue.serverTimestamp(),
-        'status': 'active',
-      };
+      print('✅ Car Listed successfully! ');
 
-      // Add to Firestore
-      DocumentReference docRef = await firestore
-          .collection('global')
-          .add(carDataWithTimestamp);
-
-      print(carDataWithTimestamp);
-      print('✅ Car listed successfully with ID: ${docRef.id}');
-      print('✅ Listed by: ${sellerData['seller_name']} (${sellerData['seller_uid']})');
-
+      // Show success snackbar
       if (mounted) {
-        // Show success message
-        _showSnackBar(
-          '✅ Car listed successfully! ',
-          Colors.green,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Car listed successfully! '),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
         );
-
-        // Wait a bit for user to see the message, then navigate back or to home
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (mounted) {
-          // Navigate back to home or main screen
-          Navigator.of(context).popUntil((route) => route. isFirst);
-        }
       }
     } on FirebaseException catch (e) {
-      print('❌ Firebase Error: ${e.code} - ${e. message}');
+      // Handle Firebase-specific errors
+      print('❌ Firebase Error: ${e.code} - ${e.message}');
 
-      if (mounted) {
-        String errorMessage;
-
-        switch (e.code) {
-          case 'permission-denied':
-            errorMessage = '❌ Permission denied. Please check your account.';
-            break;
-          case 'unavailable':
-            errorMessage = '❌ Network error. Please check your connection.';
-            break;
-          case 'deadline-exceeded':
-            errorMessage = '❌ Request timeout. Please try again.';
-            break;
-          default:
-            errorMessage = '❌ Failed to list car: ${e.message}';
-        }
-
-        _showSnackBar(errorMessage, Colors.red);
+      String errorMessage;
+      switch (e.code) {
+        case 'permission-denied':
+          errorMessage = '❌ Permission denied. You don\'t have access to list cars.';
+          break;
+        case 'unavailable':
+          errorMessage = '❌ Service unavailable. Please check your internet connection.';
+          break;
+        case 'deadline-exceeded':
+          errorMessage = '❌ Request timeout. Please try again. ';
+          break;
+        case 'not-found':
+          errorMessage = '❌ Collection not found. Please contact support.';
+          break;
+        default:
+          errorMessage = '❌ Failed to list car:  ${e.message ??  'Unknown error'}';
       }
-    } catch (e) {
-      print('❌ Unexpected Error: $e');
 
       if (mounted) {
-        _showSnackBar(
-          '❌ Unexpected error occurred. Please try again.',
-          Colors.red,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:  Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _listCarToFirestore(),
+            ),
+          ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isListingCar = false;
-        });
-      }
+      rethrow;
     }
   }
 
@@ -208,10 +179,10 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
+                style:  const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: Colors. white,
                 ),
               ),
             ),
@@ -240,7 +211,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                children:  [
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -248,7 +219,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A5F),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius:  BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'GC',
@@ -272,13 +243,13 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Car Image Slider
+                    // Car Image Placeholder
                     Stack(
                       children: [
                         Container(
                           height: 180,
                           decoration: BoxDecoration(
-                            color: Colors.grey[300],
+                            color:  Colors.grey[300],
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Stack(
@@ -297,9 +268,9 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                 bottom: 0,
                                 child: Center(
                                   child: IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios),
+                                    icon:  const Icon(Icons.arrow_back_ios),
                                     color: Colors.white,
-                                    onPressed: () {
+                                    onPressed:  () {
                                       setState(() {
                                         if (_currentImageIndex > 0) {
                                           _currentImageIndex--;
@@ -310,11 +281,11 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                 ),
                               ),
                               Positioned(
-                                right: 8,
-                                top: 0,
-                                bottom: 0,
-                                child: Center(
-                                  child: IconButton(
+                                right:  8,
+                                top:  0,
+                                bottom:  0,
+                                child:  Center(
+                                  child:  IconButton(
                                     icon: const Icon(Icons.arrow_forward_ios),
                                     color: Colors.white,
                                     onPressed: () {
@@ -337,13 +308,13 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.black. withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors. black.withOpacity(0.6),
+                                    borderRadius:  BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     children: [
                                       const Icon(
-                                        Icons.location_on,
+                                        Icons. location_on,
                                         color: Colors.white,
                                         size: 14,
                                       ),
@@ -368,8 +339,8 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                           left: 0,
                           right: 0,
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List. generate(
+                            mainAxisAlignment:  MainAxisAlignment.center,
+                            children: List.generate(
                               3,
                                   (index) => Container(
                                 margin: const EdgeInsets.symmetric(
@@ -378,10 +349,10 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape. circle,
+                                  shape: BoxShape.circle,
                                   color: index == _currentImageIndex
                                       ? const Color(0xFF1E3A5F)
-                                      : Colors.white,
+                                      :  Colors.white,
                                 ),
                               ),
                             ),
@@ -392,7 +363,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                     const SizedBox(height: 30),
                     // Estimated Price
                     const Text(
-                      'Estimated price:',
+                      'Estimated price: ',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -455,7 +426,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                     const Text(
                                       'Transmission',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize:  12,
                                         color: Color(0xFF666666),
                                       ),
                                     ),
@@ -465,7 +436,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                           'Auto',
                                       style: const TextStyle(
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight:  FontWeight.w600,
                                         color: Color(0xFF1E3A5F),
                                       ),
                                     ),
@@ -478,7 +449,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                   children: const [
                                     Text(
                                       'Engine Capacity',
-                                      style: TextStyle(
+                                      style:  TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF666666),
                                       ),
@@ -487,7 +458,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                     Text(
                                       '1498 cc',
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize:  14,
                                         fontWeight: FontWeight.w600,
                                         color: Color(0xFF1E3A5F),
                                       ),
@@ -508,7 +479,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                           child: OutlinedButton(
                             onPressed: _isListingCar
                                 ? null
-                                : () {
+                                :  () {
                               print(
                                 'Navigating to sell_inspection with data: $updatedCarDetails',
                               );
@@ -518,7 +489,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       SellInspectionScreen(
-                                        carDetails: Map<String, String>.from(
+                                        carDetails: Map<String, dynamic>.from(
                                           updatedCarDetails,
                                         ),
                                       ),
@@ -528,7 +499,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: BorderSide(
-                                color: _isListingCar
+                                color:  _isListingCar
                                     ? Colors.grey
                                     : const Color(0xFF1E3A5F),
                                 width: 2,
@@ -543,8 +514,8 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: _isListingCar
-                                    ? Colors.grey
-                                    : const Color(0xFF1E3A5F),
+                                    ?  Colors.grey
+                                    :  const Color(0xFF1E3A5F),
                               ),
                             ),
                           ),
@@ -573,7 +544,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                             )
                                 : const Text(
                               'List My Car',
-                              style: TextStyle(
+                              style:  TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -603,17 +574,16 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         'Transmission Type': 'CVT',
         'Fuel Type': 'Petrol',
         'KM Driven': 15000,
-        'Set Location': 'Islamabad',
-        'Estimated Price': 'RS: 5,500,000',
-        'Screen': 'Car Details Screen',
+        'Set Location':  'Islamabad',
+        'Estimated Price': 'RS:  5,500,000',
+        'Screen':  'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 4,
         'Car Name': 'Toyota Corolla Altis',
         'Engine Capacity': 1800,
         'Final Estimated Price': 'RS: 5,200,000',
         'seller_uid': 'User123Toyota',
-        'seller_name': 'Ahmed Khan',
-        'seller_email': 'ahmed.k@example.com',
+        'seller_name':  'Ahmed Khan',
+        'seller_email':  'ahmed.k@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'active'
       },
@@ -622,21 +592,20 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         'Model': 'Civic',
         'Variant': 'RS Turbo',
         'Year': 2022,
-        'Transmission Type': 'CVT',
+        'Transmission Type':  'CVT',
         'Fuel Type': 'Petrol',
         'KM Driven': 8500,
         'Set Location': 'Lahore',
         'Estimated Price': 'RS: 8,200,000',
-        'Screen': 'Car Details Screen',
+        'Screen':  'Car Details Screen',
         'Auto Detect': true,
-        'Images Uploaded': 6,
         'Car Name': 'Honda Civic RS',
         'Engine Capacity': 1500,
         'Final Estimated Price': 'RS: 8,000,000',
         'seller_uid': 'UserCivicFan',
-        'seller_name': 'Sarah J',
+        'seller_name':  'Sarah J',
         'seller_email': 'sarah.j@example.com',
-        'listed_at': FieldValue.serverTimestamp(),
+        'listed_at':  FieldValue.serverTimestamp(),
         'status': 'active'
       },
       {
@@ -644,20 +613,19 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         'Model': 'A4',
         'Variant': 'S Line',
         'Year': 2018,
-        'Transmission Type': 'S-Tronic',
+        'Transmission Type':  'S-Tronic',
         'Fuel Type': 'Petrol',
         'KM Driven': 45000,
-        'Set Location': 'Karachi',
+        'Set Location':  'Karachi',
         'Estimated Price': 'RS: 11,500,000',
-        'Screen': 'Car Details Screen',
+        'Screen':  'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 8,
         'Car Name': 'Audi A4 TFSI',
         'Engine Capacity': 1400,
         'Final Estimated Price': 'RS: 11,000,000',
         'seller_uid': 'AudiLover99',
-        'seller_name': 'Bilal Sheikh',
-        'seller_email': 'bilal.s@example.com',
+        'seller_name':  'Bilal Sheikh',
+        'seller_email':  'bilal.s@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'pending'
       },
@@ -666,108 +634,103 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         'Model': 'Swift',
         'Variant': 'GLX CVT',
         'Year': 2023,
-        'Transmission Type': 'Automatic',
-        'Fuel Type': 'Petrol',
+        'Transmission Type':  'Automatic',
+        'Fuel Type':  'Petrol',
         'KM Driven': 2000,
-        'Set Location': 'Rawalpindi',
+        'Set Location':  'Rawalpindi',
         'Estimated Price': 'RS: 4,200,000',
-        'Screen': 'Car Details Screen',
+        'Screen':  'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 3,
         'Car Name': 'Suzuki Swift GLX',
         'Engine Capacity': 1200,
         'Final Estimated Price': 'RS: 4,150,000',
         'seller_uid': 'SwiftUser01',
-        'seller_name': 'Usman Ali',
-        'seller_email': 'usman.ali@example.com',
+        'seller_name':  'Usman Ali',
+        'seller_email':  'usman.ali@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'active'
       },
       {
         'Brand': 'Kia',
         'Model': 'Sportage',
-        'Variant': 'AWD',
+        'Variant':  'AWD',
         'Year': 2020,
-        'Transmission Type': 'Automatic',
+        'Transmission Type':  'Automatic',
         'Fuel Type': 'Petrol',
         'KM Driven': 35000,
-        'Set Location': 'Multan',
+        'Set Location':  'Multan',
         'Estimated Price': 'RS: 7,500,000',
         'Screen': 'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 5,
         'Car Name': 'Kia Sportage AWD',
         'Engine Capacity': 2000,
         'Final Estimated Price': 'RS: 7,200,000',
         'seller_uid': 'KiaOwner55',
-        'seller_name': 'Fahad Mustafa',
+        'seller_name':  'Fahad Mustafa',
         'seller_email': 'fahad.m@example.com',
-        'listed_at': FieldValue.serverTimestamp(),
+        'listed_at': FieldValue. serverTimestamp(),
         'status': 'sold'
       },
       {
         'Brand': 'Tesla',
         'Model': 'Model 3',
-        'Variant': 'Long Range',
+        'Variant':  'Long Range',
         'Year': 2022,
-        'Transmission Type': 'Automatic',
+        'Transmission Type':  'Automatic',
         'Fuel Type': 'Electric',
         'KM Driven': 12000,
-        'Set Location': 'Islamabad',
+        'Set Location':  'Islamabad',
         'Estimated Price': 'RS: 15,000,000',
         'Screen': 'Car Details Screen',
         'Auto Detect': true,
-        'Images Uploaded': 10,
         'Car Name': 'Tesla Model 3',
         'Engine Capacity': 0,
         'Final Estimated Price': 'RS: 14,500,000',
         'seller_uid': 'ElonFanPk',
-        'seller_name': 'Hamza R',
-        'seller_email': 'hamza.r@example.com',
+        'seller_name':  'Hamza R',
+        'seller_email':  'hamza.r@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'active'
       },
       {
         'Brand': 'Toyota',
         'Model': 'Fortuner',
-        'Variant': 'Legender',
+        'Variant':  'Legender',
         'Year': 2023,
-        'Transmission Type': 'Automatic',
+        'Transmission Type':  'Automatic',
         'Fuel Type': 'Diesel',
         'KM Driven': 5000,
-        'Set Location': 'Peshawar',
+        'Set Location':  'Peshawar',
         'Estimated Price': 'RS: 18,500,000',
-        'Screen': 'Car Details Screen',
+        'Screen':  'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 7,
         'Car Name': 'Toyota Fortuner Legender',
         'Engine Capacity': 2800,
         'Final Estimated Price': 'RS: 18,000,000',
         'seller_uid': 'OffroadKing',
         'seller_name': 'Dawood Khan',
         'seller_email': 'dawood.k@example.com',
-        'listed_at': FieldValue.serverTimestamp(),
+        'listed_at': FieldValue. serverTimestamp(),
         'status': 'active'
       },
       {
-        'Brand': 'Hyundai',
+        'Brand':  'Hyundai',
         'Model': 'Sonata',
-        'Variant': '2.5 Smartstream',
+        'Variant':  '2.5 Smartstream',
         'Year': 2021,
         'Transmission Type': 'Automatic',
         'Fuel Type': 'Petrol',
         'KM Driven': 22000,
-        'Set Location': 'Faisalabad',
+        'Set Location':  'Faisalabad',
         'Estimated Price': 'RS: 9,000,000',
         'Screen': 'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 5,
         'Car Name': 'Hyundai Sonata',
         'Engine Capacity': 2500,
         'Final Estimated Price': 'RS: 8,800,000',
         'seller_uid': 'SonataDriver',
-        'seller_name': 'Zainab B',
-        'seller_email': 'zainab.b@example.com',
+        'seller_name':  'Zainab B',
+        'seller_email':  'zainab.b@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'active'
       },
@@ -776,60 +739,57 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         'Model': 'C-Class',
         'Variant': 'C200',
         'Year': 2016,
-        'Transmission Type': 'Automatic',
+        'Transmission Type':  'Automatic',
         'Fuel Type': 'Petrol',
         'KM Driven': 60000,
-        'Set Location': 'Lahore',
+        'Set Location':  'Lahore',
         'Estimated Price': 'RS: 9,500,000',
         'Screen': 'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 9,
         'Car Name': 'Mercedes C200 AMG',
         'Engine Capacity': 2000,
         'Final Estimated Price': 'RS: 9,200,000',
         'seller_uid': 'MercLover',
         'seller_name': 'Omer Qureshi',
         'seller_email': 'omer.q@example.com',
-        'listed_at': FieldValue.serverTimestamp(),
+        'listed_at': FieldValue. serverTimestamp(),
         'status': 'active'
       },
       {
-        'Brand': 'Daihatsu',
-        'Model': 'Mira',
-        'Variant': 'X SA III',
+        'Brand':  'Daihatsu',
+        'Model':  'Mira',
+        'Variant':  'X SA III',
         'Year': 2019,
-        'Transmission Type': 'CVT',
+        'Transmission Type':  'CVT',
         'Fuel Type': 'Petrol',
         'KM Driven': 40000,
-        'Set Location': 'Karachi',
+        'Set Location':  'Karachi',
         'Estimated Price': 'RS: 2,800,000',
         'Screen': 'Car Details Screen',
         'Auto Detect': false,
-        'Images Uploaded': 4,
         'Car Name': 'Daihatsu Mira',
         'Engine Capacity': 660,
         'Final Estimated Price': 'RS: 2,650,000',
         'seller_uid': 'SmallCarUser',
-        'seller_name': 'Hina T',
-        'seller_email': 'hina.t@example.com',
+        'seller_name':  'Hina T',
+        'seller_email':  'hina.t@example.com',
         'listed_at': FieldValue.serverTimestamp(),
         'status': 'active'
       },
     ];
 
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final FirebaseFirestore _firestore = FirebaseFirestore. instance;
 
     try {
       final batch = _firestore.batch();
 
       for (var carData in dummyCars) {
-        // Changed collection to 'car_listings' to avoid mixing with your 'events'
         final docRef = _firestore.collection('global').doc();
         batch.set(docRef, carData);
       }
 
       await batch.commit();
-      print('✅ Successfully seeded ${dummyCars.length} dummy cars!');
+      print('✅ Successfully seeded ${dummyCars.length} dummy cars! ');
     } catch (e) {
       print('❌ Error seeding cars: $e');
       rethrow;
