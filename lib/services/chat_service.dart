@@ -47,7 +47,6 @@ class ChatService {
     required String senderId,
     required String senderName,
     required String text,
-    bool isAiGenerated = false,
     String? imageUrl,
   }) async {
     try {
@@ -63,7 +62,6 @@ class ChatService {
         'text': text,
         'timestamp': FieldValue.serverTimestamp(),
         'isRead': false,
-        'isAiGenerated': isAiGenerated,
         'imageUrl': imageUrl,
       });
 

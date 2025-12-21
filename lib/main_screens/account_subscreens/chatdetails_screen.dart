@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
@@ -28,18 +27,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // Gemini AI setup
-  static const String _apiKey = 'AIzaSyAJ0S0GUTnZtBO4n2T24YreKWFCcZQWz1M';
-  late final GenerativeModel _model;
-  bool _isAiTyping = false;
-
   @override
   void initState() {
     super.initState();
-    _model = GenerativeModel(
-      model: 'gemini-pro',
-      apiKey: _apiKey,
-    );
     _markAsRead();
   }
 
@@ -77,83 +67,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       );
 
       _scrollToBottom();
-
-      // Trigger AI auto-reply after 1 second
-      _generateAiResponse(messageText);
     } catch (e) {
       _showSnackBar('Error sending message: $e');
-    }
-  }
-
-  Future<void> _generateAiResponse(String userMessage) async {
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isAiTyping = true;
-    });
-
-    try {
-      final prompt = '''
-You are a helpful assistant for GetCars, a car marketplace app. A user just sent you this message: "$userMessage"
-
-Respond in a friendly, helpful way about cars, buying/selling vehicles, or general chat. Keep responses concise (1-3 sentences). If they're asking about a specific car or feature, be enthusiastic and helpful.
-
-Examples:
-- If they ask about a car: Provide helpful info about features, pricing tips, or what to look for
-- If they greet you: Greet back warmly and ask how you can help with their car needs
-- If they ask about the app: Explain GetCars features clearly
-- General chat: Be friendly and conversational
-
-Your response:''';
-
-      final content = [Content. text(prompt)];
-      final response = await _model.generateContent(content);
-      final aiReply = response.text ??  'Sorry, I couldn\'t process that. Can you try again?';
-
-      final chatService = ref.read(chatServiceProvider);
-      await chatService.sendMessage(
-        chatId: widget.chatId,
-        senderId: widget.otherUserId,
-        senderName: widget.name,
-        text: aiReply,
-        isAiGenerated: true,
-      );
-
-      _scrollToBottom();
-    } catch (e) {
-      print('Error generating AI response: $e');
-
-      final fallbackResponse = _getFallbackResponse(userMessage);
-      final chatService = ref.read(chatServiceProvider);
-      await chatService.sendMessage(
-        chatId: widget.chatId,
-        senderId: widget.otherUserId,
-        senderName: widget.name,
-        text: fallbackResponse,
-        isAiGenerated: false,
-      );
-    } finally {
-      setState(() {
-        _isAiTyping = false;
-      });
-    }
-  }
-
-  String _getFallbackResponse(String message) {
-    final lowerMessage = message.toLowerCase();
-
-    if (lowerMessage.contains('hello') || lowerMessage.contains('hi') || lowerMessage.contains('hey')) {
-      return 'Hello! How can I help you with your car search today?  🚗';
-    } else if (lowerMessage.contains('price') || lowerMessage.contains('cost')) {
-      return 'Prices vary by model and condition. You can filter by price range in the search.  What\'s your budget?';
-    } else if (lowerMessage. contains('buy') || lowerMessage.contains('purchase')) {
-      return 'Great!  Browse our listings, favorite the ones you like, and message sellers directly through the app. ';
-    } else if (lowerMessage.contains('sell')) {
-      return 'To sell your car, go to the Sell tab, add photos and details, then post your listing.  It\'s free!';
-    } else if (lowerMessage.contains('how are you') || lowerMessage.contains('how r u')) {
-      return 'I\'m doing great, thanks for asking! Ready to help you find the perfect car.  What are you looking for?';
-    } else {
-      return 'That\'s interesting! Is there anything specific about cars or our app I can help you with?';
     }
   }
 
@@ -261,22 +176,6 @@ Your response:''';
                                 size: 24,
                               ),
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.green,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons. psychology,
-                                  color: Colors.white,
-                                  size: 12,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                         const SizedBox(width: 12),
@@ -284,46 +183,14 @@ Your response:''';
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    widget.name,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors. purple,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      'AI',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (_isAiTyping)
-                                const Text(
-                                  'typing...',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.greenAccent,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                              Text(
+                                widget.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
+                              ),
                             ],
                           ),
                         ),
@@ -385,44 +252,22 @@ Your response:''';
                           decoration: BoxDecoration(
                             color: isMe
                                 ? Colors.white
-                                : message.isAiGenerated
-                                ?  const Color(0xFF2C4A6F)
                                 : const Color(0xFF1E3A5F),
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: message.isAiGenerated
-                                ? [
-                              BoxShadow(
-                                color: Colors.purple. withOpacity(0.3),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              )
-                            ]
-                                : null,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (message.isAiGenerated && !isMe)
+                              if (!isMe)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 4),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(
-                                        Icons.psychology,
-                                        size: 12,
-                                        color: Colors.purpleAccent,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'AI Response',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.purpleAccent,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    message.senderName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               Text(
@@ -457,32 +302,6 @@ Your response:''';
                 ),
               ),
             ),
-            // Typing indicator
-            if (_isAiTyping)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A5F),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTypingDot(0),
-                          const SizedBox(width: 4),
-                          _buildTypingDot(1),
-                          const SizedBox(width: 4),
-                          _buildTypingDot(2),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             // Message Input
             Container(
               color: Colors.white,
@@ -528,26 +347,6 @@ Your response:''';
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTypingDot(int index) {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      builder: (context, double value, child) {
-        return Transform.translate(
-          offset: Offset(0, -5 * (value * (index % 2 == 0 ?  1 : -1))),
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape. circle,
-            ),
-          ),
-        );
-      },
     );
   }
 
