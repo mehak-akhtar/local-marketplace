@@ -103,11 +103,14 @@ class ChatService {
   }
 
   // ✅ Get user's chat rooms (client-side sorting to avoid composite index)
+  // Note: We use client-side sorting instead of .orderBy() to avoid requiring
+  // a composite index on [participants, lastMessageTime]. This is acceptable
+  // for chat lists since they're typically not very large.
   Stream<List<ChatRoom>> getUserChats(String userId) {
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: userId)
-        . snapshots()
+        .snapshots()
         .map((snapshot) {
       // Convert to ChatRoom objects
       final chatRooms = snapshot.docs
@@ -122,6 +125,8 @@ class ChatService {
   }
 
   // Mark messages as read
+  // Note: This query requires a composite index on [senderId, isRead]
+  // Firebase will prompt you to create it when first used
   Future<void> markMessagesAsRead(String chatId, String userId) async {
     try {
       final chatDoc = await _firestore.collection('chats').doc(chatId).get();
@@ -133,6 +138,7 @@ class ChatService {
       });
 
       // Mark individual messages as read
+      // REQUIRES INDEX: [senderId, isRead]
       final messagesSnapshot = await _firestore
           .collection('chats')
           .doc(chatId)

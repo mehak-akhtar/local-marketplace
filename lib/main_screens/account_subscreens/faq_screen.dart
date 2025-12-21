@@ -262,6 +262,8 @@ class _FaqScreenState extends State<FaqScreen> {
             // FAQ List from Firebase
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
+                // REQUIRES INDEX: [isActive, timestamp DESC]
+                // Firebase will automatically prompt you to create it when first used
                 stream: _firestore
                     .collection('faqs')
                     .where('isActive', isEqualTo: true)
