@@ -25,13 +25,28 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
     // Copy the received map and prepare to add new fields
     updatedCarDetails = Map<String, dynamic>.from(widget.carDetails);
 
-    // Add fields specific to this screen
-    updatedCarDetails['Car Name'] = 'Mercedes-Benz GLA';
-    updatedCarDetails['Engine Capacity'] = '1498 cc';
-    updatedCarDetails['Final Estimated Price'] = 'RS: 18,000,00';
+    // ✅ FIXED:  Use actual car data instead of placeholders
+    // Only set Car Name if not already provided
+    if (! updatedCarDetails. containsKey('Car Name') ||
+        updatedCarDetails['Car Name']?.toString().trim().isEmpty == true) {
+      updatedCarDetails['Car Name'] = '${updatedCarDetails['Brand'] ??  ''} ${updatedCarDetails['Model'] ?? ''}'. trim();
+    }
+
+    // Set Engine Capacity if not provided (placeholder for now)
+    if (!updatedCarDetails.containsKey('Engine Capacity') ||
+        updatedCarDetails['Engine Capacity']?. toString().trim().isEmpty == true) {
+      updatedCarDetails['Engine Capacity'] = 'N/A';
+    }
+
+    // Use the user-entered price or a default
+    if (!updatedCarDetails.containsKey('Final Estimated Price') ||
+        updatedCarDetails['Final Estimated Price']?.toString().trim().isEmpty == true) {
+      updatedCarDetails['Final Estimated Price'] = updatedCarDetails['Price'] ?? 'Contact for price';
+    }
+
     updatedCarDetails['Screen'] = 'Car Details Screen';
 
-    print('Car Details in sell_car_details: $updatedCarDetails');
+    print('Car Details in sell_car_details:  $updatedCarDetails');
   }
 
   // Validate required fields

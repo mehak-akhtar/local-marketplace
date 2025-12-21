@@ -9,19 +9,24 @@ final carsCollectionProvider = Provider<CollectionReference>((ref) {
   return firestore.collection('global');
 });
 
-// ✅ Stream of ALL cars (client-side filtering to avoid composite index)
+// ✅ FIXED: Stream of ALL cars (uses 'createdAt' instead of 'listed_at')
 final allCarsStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   final carsCollection = ref.watch(carsCollectionProvider);
 
+  // ✅ FIXED: Changed 'listed_at' to 'createdAt' to match your Firestore schema
   return carsCollection
-      .orderBy('listed_at', descending: true)
+      .orderBy('createdAt', descending: true)
       .snapshots()
       .map((snapshot) {
-    return snapshot.docs.map((doc) {
+    return snapshot. docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
+      data['id'] = doc. id;
       return data;
-    }). toList();
+    }).toList();
+  }).handleError((error) {
+    // ✅ ADDED: Better error handling
+    print('❌ Error fetching cars: $error');
+    return <Map<String, dynamic>>[];
   });
 });
 
@@ -59,13 +64,13 @@ final filteredCarsProvider = Provider<List<Map<String, dynamic>>>((ref) {
         final carName = (car['Car Name'] as String?  ?? '').toLowerCase();
         final brand = (car['Brand'] as String? ?? '').toLowerCase();
         final model = (car['Model'] as String? ?? '').toLowerCase();
-        final location = (car['Set Location'] as String? ?? '').toLowerCase();
+        final location = (car['Set Location'] as String? ??  '').toLowerCase();
 
         return carName.contains(searchLower) ||
             brand.contains(searchLower) ||
-            model.contains(searchLower) ||
+            model. contains(searchLower) ||
             location.contains(searchLower);
-      }). toList();
+      }).toList();
     },
     loading: () => [],
     error: (_, __) => [],
@@ -74,7 +79,7 @@ final filteredCarsProvider = Provider<List<Map<String, dynamic>>>((ref) {
 
 // ✅ Get single car by ID (Stream)
 final carByIdProvider = StreamProvider. family<Map<String, dynamic>?, String>((ref, carId) {
-  if (carId. isEmpty) {
+  if (carId.isEmpty) {
     return Stream.value(null);
   }
 
@@ -94,8 +99,8 @@ final carByIdProvider = StreamProvider. family<Map<String, dynamic>?, String>((r
 });
 
 // ✅ Get single car by ID (Future - one-time fetch)
-final carByIdFutureProvider = FutureProvider. family<Map<String, dynamic>?, String>((ref, carId) async {
-  if (carId. isEmpty) {
+final carByIdFutureProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, carId) async {
+  if (carId.isEmpty) {
     return null;
   }
 
@@ -110,21 +115,22 @@ final carByIdFutureProvider = FutureProvider. family<Map<String, dynamic>?, Stri
   return null;
 });
 
-// ✅ Cars by seller (Stream)
+// ✅ FIXED: Cars by seller (uses 'createdAt' instead of 'listed_at')
 final carsBySellerProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, sellerUid) {
-  if (sellerUid.isEmpty) {
-    return Stream.value([]);
+  if (sellerUid. isEmpty) {
+    return Stream. value([]);
   }
 
   final carsCollection = ref.watch(carsCollectionProvider);
 
+  // ✅ FIXED: Changed 'listed_at' to 'createdAt'
   return carsCollection
-      . where('seller_uid', isEqualTo: sellerUid)
-      .orderBy('listed_at', descending: true)
+      .where('seller_uid', isEqualTo: sellerUid)
+      .orderBy('createdAt', descending: true)
       .snapshots()
       .map((snapshot) {
     return snapshot.docs.map((doc) {
-      final data = doc. data() as Map<String, dynamic>;
+      final data = doc.data() as Map<String, dynamic>;
       data['id'] = doc.id;
       return data;
     }).toList();
@@ -132,19 +138,19 @@ final carsBySellerProvider = StreamProvider.family<List<Map<String, dynamic>>, S
 });
 
 // ✅ Cars by fuel type (client-side filtering)
-final carsByFuelTypeProvider = Provider. family<List<Map<String, dynamic>>, String>((ref, fuelType) {
+final carsByFuelTypeProvider = Provider.family<List<Map<String, dynamic>>, String>((ref, fuelType) {
   final allCarsAsync = ref.watch(allCarsStreamProvider);
 
   return allCarsAsync.when(
     data: (cars) {
-      if (fuelType.isEmpty || fuelType. toLowerCase() == 'all') {
+      if (fuelType.isEmpty || fuelType.toLowerCase() == 'all') {
         return cars;
       }
 
-      final fuelLower = fuelType. toLowerCase();
+      final fuelLower = fuelType.toLowerCase();
       return cars.where((car) {
         final carFuel = (car['Fuel Type'] as String? ?? '').toLowerCase();
-        return carFuel.contains(fuelLower);
+        return carFuel. contains(fuelLower);
       }).toList();
     },
     loading: () => [],
@@ -163,7 +169,7 @@ final carsByStatusProvider = Provider.family<List<Map<String, dynamic>>, String>
       }
 
       return cars.where((car) {
-        final carStatus = (car['status'] as String? ?? '').toLowerCase();
+        final carStatus = (car['status'] as String? ??  '').toLowerCase();
         return carStatus == status.toLowerCase();
       }).toList();
     },
