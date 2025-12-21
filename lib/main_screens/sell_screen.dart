@@ -251,14 +251,7 @@ class _SellScreenState extends State<SellScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SellDetailsScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: _validateAndNavigate,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -308,6 +301,88 @@ class _SellScreenState extends State<SellScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // Validate car number before navigation
+  void _validateAndNavigate() {
+    final carNumber = _carNumberController.text.trim();
+
+    // Check if car number is empty
+    if (carNumber.isEmpty) {
+      _showErrorDialog('Car number cannot be empty. Please enter a valid car number.');
+      return;
+    }
+
+    // Check if car number is alphanumeric
+    final alphanumericRegex = RegExp(r'^[a-zA-Z0-9]+$');
+    if (!alphanumericRegex.hasMatch(carNumber)) {
+      _showErrorDialog('Car number must contain only letters and numbers (no spaces or special characters).');
+      return;
+    }
+
+    // Check car number length (5-15 characters)
+    if (carNumber.length < 5 || carNumber.length > 15) {
+      _showErrorDialog('Car number must be between 5 and 15 characters long.');
+      return;
+    }
+
+    // If all validations pass, navigate to the next screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SellDetailsScreen(),
+      ),
+    );
+  }
+
+  // Show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Validation Error',
+                style: TextStyle(
+                  color: Color(0xFF1E3A5F),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF1E3A5F),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFF1E3A5F),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

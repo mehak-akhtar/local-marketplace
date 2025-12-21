@@ -129,9 +129,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final currentUser = _auth.currentUser;
       if (currentUser == null) return;
 
+      // REQUIRES INDEX: [userId, isRead]
+      // Firebase will prompt you to create it when first used
       final notifications = await _firestore
           .collection('notifications')
-          . where('userId', isEqualTo: currentUser.uid)
+          .where('userId', isEqualTo: currentUser.uid)
           .where('isRead', isEqualTo: false)
           .get();
 
@@ -281,9 +283,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               )
                   : StreamBuilder<QuerySnapshot>(
+                // REQUIRES INDEX: [userId, timestamp DESC]
+                // Firebase will automatically prompt you to create it when first used
                 stream: _firestore
                     .collection('notifications')
-                    .where('userId', isEqualTo: currentUser. uid)
+                    .where('userId', isEqualTo: currentUser.uid)
                     .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
