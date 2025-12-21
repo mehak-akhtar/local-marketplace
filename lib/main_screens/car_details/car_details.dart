@@ -37,7 +37,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
     ];
 
     // Use the hash code of the name to pick a consistent color
-    final index = name.hashCode.abs() % colors.length;
+    final index = name.hashCode. abs() % colors.length;
     return colors[index];
   }
 
@@ -105,14 +105,26 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
   }
 
   void _showSnackBar(String message) {
-    if (!mounted) return;
+    if (! mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content:  Text(message),
         backgroundColor: const Color(0xFF1E3A5F),
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  // ✅ HELPER METHOD TO SAFELY PARSE NUMBERS
+  int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      final cleaned = value.replaceAll(',', '').trim();
+      return int.tryParse(cleaned) ?? 0;
+    }
+    return 0;
   }
 
   @override
@@ -177,7 +189,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
       padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+        children:  [
           Row(
             children: [
               Container(
@@ -189,7 +201,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                   color: const Color(0xFF1E3A5F),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child:  const Text(
                   'GC',
                   style: TextStyle(
                     fontSize: 20,
@@ -226,7 +238,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
           Expanded(
             child: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment. center,
                 children: [
                   Icon(Icons.directions_car_outlined, size: 80, color: Colors.grey[400]),
                   const SizedBox(height: 16),
@@ -241,7 +253,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
+                    style:  ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E3A5F),
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -267,12 +279,15 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
     final brand = car['Brand'] ?? '';
     final model = car['Model'] ?? '';
     final variant = car['Variant'] ?? '';
-    final year = car['Year'] ?? 0;
-    final kmDriven = car['KM Driven'] ?? 0;
+
+    // ✅ SAFE PARSING FOR NUMERIC FIELDS
+    final year = _parseToInt(car['Year']);
+    final kmDriven = _parseToInt(car['KM Driven']);
+    final engineCapacity = _parseToInt(car['Engine Capacity']);
+
     final fuelType = car['Fuel Type'] ?? 'Unknown';
     final location = car['Set Location'] ?? 'Unknown';
     final transmissionType = car['Transmission Type'] ?? 'Unknown';
-    final engineCapacity = car['Engine Capacity'] ?? 0;
     final estimatedPrice = car['Estimated Price'] ?? '';
     final finalPrice = car['Final Estimated Price'] ?? '';
     final sellerName = car['seller_name'] ?? 'Unknown Seller';
@@ -288,7 +303,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
           _buildHeader(context),
           Expanded(
             child: SingleChildScrollView(
-              child: Column(
+              child:  Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Related Cars Section
@@ -316,8 +331,8 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 200,
-                            child: ListView.builder(
+                            height:  200,
+                            child:  ListView.builder(
                               scrollDirection: Axis.horizontal,
                               itemCount: filtered.length,
                               itemBuilder: (context, index) {
@@ -339,14 +354,14 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.3),
+                            color: Colors.grey. withOpacity(0.3),
                             spreadRadius: 2,
                             blurRadius: 8,
                           ),
                         ],
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:  CrossAxisAlignment.start,
                         children: [
                           // Car Image
                           Container(
@@ -357,7 +372,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                 top: Radius.circular(16),
                               ),
                             ),
-                            child: Stack(
+                            child:  Stack(
                               children: [
                                 Center(
                                   child: Icon(
@@ -370,19 +385,19 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                 Positioned(
                                   bottom: 12,
                                   left: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
+                                  child:  Container(
+                                    padding:  const EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: Colors. black.withOpacity(0.6),
+                                      borderRadius:  BorderRadius.circular(20),
                                     ),
                                     child: Row(
                                       children: [
                                         const Icon(
-                                          Icons.location_on,
+                                          Icons. location_on,
                                           color: Colors.white,
                                           size: 16,
                                         ),
@@ -403,8 +418,8 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                   Positioned(
                                     top: 12,
                                     right: 12,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
+                                    child:  Container(
+                                      padding:  const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 6,
                                       ),
@@ -427,7 +442,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                           ),
                           // Car Details
                           Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets. all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -435,11 +450,11 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
-                                      child: Text(
+                                      child:  Text(
                                         carName,
                                         style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize:  24,
+                                          fontWeight:  FontWeight.bold,
                                           color: Color(0xFF1E3A5F),
                                         ),
                                       ),
@@ -449,8 +464,8 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                     IconButton(
                                       icon: () {
                                         final isFavAsync = ref.watch(isFavoriteProvider(widget.carId));
-                                        return isFavAsync.when(
-                                          data: (isFav) => Icon(
+                                        return isFavAsync. when(
+                                          data:  (isFav) => Icon(
                                             isFav ? Icons.favorite : Icons.favorite_border,
                                             color: isFav ? Colors.red : const Color(0xFF1E3A5F),
                                           ),
@@ -464,7 +479,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                           ),
                                         );
                                       }(),
-                                      onPressed: () async {
+                                      onPressed:  () async {
                                         final currentUser = ref.read(authStateProvider).value;
                                         if (currentUser == null) {
                                           _showSnackBar('Please log in to add favorites');
@@ -500,7 +515,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                 Text(
                                   'Year: $year',
                                   style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize:  14,
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -509,13 +524,13 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: _buildSpecItem(
+                                      child:  _buildSpecItem(
                                         'Transmission',
                                         transmissionType,
                                       ),
                                     ),
                                     Expanded(
-                                      child: _buildSpecItem(
+                                      child:  _buildSpecItem(
                                         'Engine Capacity',
                                         '$engineCapacity cc',
                                       ),
@@ -549,7 +564,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFE8C87C).withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius:  BorderRadius.circular(12),
                                   ),
                                   child: Row(
                                     children: [
@@ -557,19 +572,19 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                         radius: 20,
                                         backgroundColor: _getAvatarColor(sellerName),
                                         child: const Icon(
-                                          Icons.person,
+                                          Icons. person,
                                           color: Colors.white,
                                           size: 24,
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
-                                        child: Column(
+                                        child:  Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             const Text(
                                               'Seller',
-                                              style: TextStyle(
+                                              style:  TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.grey,
                                               ),
@@ -578,7 +593,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                               sellerName,
                                               style: const TextStyle(
                                                 fontSize: 16,
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight:  FontWeight.w600,
                                                 color: Color(0xFF1E3A5F),
                                               ),
                                             ),
@@ -599,7 +614,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                           Text(
                                             estimatedPrice,
                                             style: TextStyle(
-                                              fontSize: 16,
+                                              fontSize:  16,
                                               color: Colors.grey[600],
                                               decoration: TextDecoration.lineThrough,
                                             ),
@@ -607,10 +622,10 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                           const SizedBox(height: 4),
                                         ],
                                         Text(
-                                          finalPrice.isNotEmpty ? finalPrice : 'Price on request',
-                                          style: const TextStyle(
+                                          finalPrice. isNotEmpty ? finalPrice : 'Price on request',
+                                          style:  const TextStyle(
                                             fontSize: 28,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight:  FontWeight.bold,
                                             color: Color(0xFF1E3A5F),
                                           ),
                                         ),
@@ -665,7 +680,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                             ),
                             child: Text(
                               status.toLowerCase() == 'sold' ? 'Sold Out' : 'Book Test Drive',
-                              style: const TextStyle(
+                              style:  const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -696,10 +711,10 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                                 color: Color(0xFF1E3A5F),
                               ),
                             )
-                                : const Text(
+                                :  const Text(
                               'Contact Seller',
-                              style: TextStyle(
-                                fontSize: 16,
+                              style:  TextStyle(
+                                fontSize:  16,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF1E3A5F),
                               ),
@@ -766,9 +781,9 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
+          boxShadow:  [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey. withOpacity(0.2),
               spreadRadius: 1,
               blurRadius: 5,
             ),
@@ -782,7 +797,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
               height: 70,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: const BorderRadius.vertical(
+                borderRadius:  const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
               ),
@@ -792,7 +807,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                     child: Icon(
                       Icons.directions_car,
                       size: 35,
-                      color: Colors.grey[600],
+                      color: Colors. grey[600],
                     ),
                   ),
                   if (status.toLowerCase() == 'sold')
@@ -800,15 +815,15 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                       top: 6,
                       left: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding:  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
                           'SOLD',
-                          style: TextStyle(
-                            color: Colors.white,
+                          style:  TextStyle(
+                            color:  Colors.white,
                             fontSize: 8,
                             fontWeight: FontWeight.bold,
                           ),
@@ -840,7 +855,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height:  6),
                   Text(
                     price,
                     style: const TextStyle(
@@ -851,13 +866,13 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                   ),
                   const SizedBox(height: 6),
                   SizedBox(
-                    width: double.infinity,
+                    width:  double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => CarDetailsScreen(carId: carId),
+                            builder: (context) => CarDetailsScreen(carId:  carId),
                           ),
                         );
                       },
@@ -869,7 +884,7 @@ class _CarDetailsScreenState extends ConsumerState<CarDetailsScreen> {
                         ),
                       ),
                       child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:  MainAxisAlignment.center,
                         children: [
                           Text(
                             'View car',

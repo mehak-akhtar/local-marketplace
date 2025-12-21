@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:olxapp/providers/auth_provider.dart';
 import 'signup_screen.dart';
+import 'resetpasswordscreen.dart'; // ← ADDED THIS IMPORT
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -18,6 +19,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  final _firestore = FirebaseFirestore. instance;
 
   // Email Validator
   bool emailValidator(String email) {
@@ -31,7 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case 'user-not-found':
         return 'No user found for that email.';
       case 'wrong-password':
-        return 'Wrong password provided.';
+        return 'Wrong password provided. ';
       case 'invalid-email':
         return 'The email address is not valid.';
       case 'user-disabled':
@@ -40,46 +42,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return 'Too many attempts. Please try again later.';
       case 'operation-not-allowed':
         return 'Operation not allowed. Please contact support.';
+      case 'invalid-credential':
+        return 'Invalid email or password.  Please try again.';
+      case 'network-request-failed':
+        return 'Network error. Please check your connection.';
       default:
-        return 'An error occurred. Please try again.';
+        return 'An error occurred.  Please try again.';
     }
   }
 
   Future<void> _authenticate() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey. currentState!.validate()) {
       return;
     }
 
     final auth = ref.read(firebaseAuthProvider);
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController. text. trim();
 
     if (!emailValidator(email)) {
-      _showSnackBar('Invalid Email', Colors.red);
+      _showSnackBar('❌ Invalid Email', Colors.red);
       return;
     }
 
     try {
       setState(() => _isLoading = true);
 
-      await auth.signInWithEmailAndPassword(
+      // Sign in with email and password
+      UserCredential userCredential = await auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      if (mounted) {
-        _showSnackBar('Login Successful', Colors.green);
-      }
+      final user = userCredential.user;
 
-      // authStateProvider will automatically detect login and navigate
+      if (user != null) {
+        // ✅ CHECK IF EMAIL IS VERIFIED
+        if (! user.emailVerified) {
+          // Sign out the user immediately
+          await auth.signOut();
+
+          if (mounted) {
+            // Show dialog with resend option
+            _showEmailVerificationDialog(email, password);
+          }
+          return;
+        }
+
+        // ✅ Email is verified - Update Firestore
+        try {
+          await _firestore.collection('users').doc(user.uid).update({
+            'emailVerified': true,
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
+        } catch (firestoreError) {
+          // If update fails, just log it - don't block login
+          print('Firestore update error: $firestoreError');
+        }
+
+        if (mounted) {
+          _showSnackBar('✅ Login Successful', Colors.green);
+        }
+
+        // authStateProvider will automatically detect login and navigate
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        String errorMessage = getErrorMessage(e.code);
-        _showSnackBar(errorMessage, Colors.red);
+        String errorMessage = getErrorMessage(e. code);
+        _showSnackBar('❌ $errorMessage', Colors.red);
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('An unexpected error occurred', Colors.red);
+        _showSnackBar('❌ An unexpected error occurred', Colors.red);
+        print('Login error: $e');
       }
     } finally {
       if (mounted) {
@@ -88,37 +123,149 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      _showSnackBar('Please enter your email address', Colors.orange);
-      return;
-    }
-
-    if (!emailValidator(email)) {
-      _showSnackBar('Please enter a valid email address', Colors.orange);
-      return;
-    }
-
-    try {
-      final auth = ref.read(firebaseAuthProvider);
-      await auth.sendPasswordResetEmail(email: email);
-
-      if (mounted) {
-        _showSnackBar(
-          'Password reset email sent! Check your inbox.',
-          Colors.green,
+  // Show dialog when email is not verified
+  void _showEmailVerificationDialog(String email, String password) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:  (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius:  BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.mark_email_unread, color:  Color(0xFF1E3A5F), size: 28),
+              SizedBox(width:  10),
+              Text(
+                'Email Not Verified',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E3A5F),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please verify your email address before logging in.',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8C87C).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child:  Row(
+                  children: [
+                    const Icon(Icons. email, size: 20, color: Color(0xFF1E3A5F)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        email,
+                        style:  const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E3A5F),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Check your inbox for the verification link.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton. icon(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _resendVerificationEmail(email, password);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3A5F),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
+              label: const Text(
+                'Resend Email',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
         );
+      },
+    );
+  }
+
+  // Resend verification email
+  Future<void> _resendVerificationEmail(String email, String password) async {
+    try {
+      setState(() => _isLoading = true);
+
+      final auth = ref.read(firebaseAuthProvider);
+
+      // Sign in temporarily to resend email
+      UserCredential credential = await auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (credential.user != null && ! credential.user! .emailVerified) {
+        await credential.user!.sendEmailVerification();
+
+        if (mounted) {
+          _showSnackBar(
+            '✅ Verification email sent! Please check your inbox.',
+            Colors.green,
+          );
+        }
+
+        // Sign out again
+        await auth.signOut();
+      } else if (credential.user != null && credential.user!.emailVerified) {
+        // Email was verified in the meantime
+        if (mounted) {
+          _showSnackBar(
+            '✅ Email already verified!  Please try logging in again.',
+            Colors.green,
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        String errorMessage = getErrorMessage(e.code);
-        _showSnackBar(errorMessage, Colors.red);
+        _showSnackBar('❌ ${getErrorMessage(e.code)}', Colors.red);
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Failed to send reset email', Colors.red);
+        _showSnackBar('❌ Failed to resend verification email', Colors. red);
+        print('Resend error: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -132,7 +279,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -194,7 +341,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType:  TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white,
@@ -204,7 +351,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
+                        borderSide:  BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -242,14 +389,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       filled: true,
                       fillColor: Colors.white,
                       hintText: 'Password',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
+                      hintStyle:  TextStyle(
+                        color:  Colors.grey[400],
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets. symmetric(
                         horizontal: 20,
                         vertical: 15,
                       ),
@@ -267,11 +414,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         },
                       ),
                     ),
-                    validator: (value) {
+                    validator:  (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
                       }
-                      if (value.length < 6) {
+                      if (value. length < 6) {
                         return 'Password must be at least 6 characters';
                       }
                       return null;
@@ -279,12 +426,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Forgot Password
+                  // Forgot Password - ✅ UPDATED TO NAVIGATE TO RESET PASSWORD SCREEN
                   Align(
-                    alignment: Alignment.centerRight,
+                    alignment:  Alignment.centerRight,
                     child: TextButton(
-                      onPressed: _resetPassword,
-                      child: const Text(
+                      onPressed: () {
+                        // Navigate to Reset Password Screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ResetPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child:  const Text(
                         'Forgot password?',
                         style: TextStyle(
                           fontSize: 12,
@@ -298,20 +453,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Log In Button
                   SizedBox(
-                    width: double.infinity,
+                    width:  double.infinity,
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _authenticate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3A5F),
+                      style: ElevatedButton. styleFrom(
+                        backgroundColor:  const Color(0xFF1E3A5F),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
                         disabledBackgroundColor:
                         const Color(0xFF1E3A5F).withOpacity(0.5),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
+                      child:  _isLoading
+                          ?  const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
@@ -333,10 +488,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Sign Up Link
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment:  MainAxisAlignment.center,
                     children: [
                       const Text(
-                        "Don't have an Account? ",
+                        "Don't have an Account?  ",
                         style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF1E3A5F),
