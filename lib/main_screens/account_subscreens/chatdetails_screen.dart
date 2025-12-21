@@ -258,7 +258,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (!isMe)
+                              if (!isMe && message.senderName.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 4),
                                   child: Text(
