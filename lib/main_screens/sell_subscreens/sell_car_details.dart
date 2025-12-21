@@ -23,7 +23,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
   void initState() {
     super.initState();
     // Copy the received map and prepare to add new fields
-    updatedCarDetails = Map<String, dynamic>.from(widget. carDetails);
+    updatedCarDetails = Map<String, dynamic>.from(widget.carDetails);
 
     // Add fields specific to this screen
     updatedCarDetails['Car Name'] = 'Mercedes-Benz GLA';
@@ -31,7 +31,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
     updatedCarDetails['Final Estimated Price'] = 'RS: 18,000,00';
     updatedCarDetails['Screen'] = 'Car Details Screen';
 
-    print('Car Details in sell_car_details:  $updatedCarDetails');
+    print('Car Details in sell_car_details: $updatedCarDetails');
   }
 
   // Validate required fields
@@ -40,7 +40,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
     final requiredFields = ['Brand', 'Model', 'Year', 'KM Driven', 'Set Location'];
 
     for (String field in requiredFields) {
-      if (! updatedCarDetails.containsKey(field) ||
+      if (!updatedCarDetails.containsKey(field) ||
           updatedCarDetails[field]?.isEmpty == true) {
         _showSnackBar(
           '❌ Missing required field: $field',
@@ -71,8 +71,8 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
         // If user document doesn't exist, use basic auth data
         return {
           'seller_uid': user.uid,
-          'seller_name': user.displayName ??  'Unknown User',
-          'seller_email':  user.email ?? '',
+          'seller_name': user.displayName ?? 'Unknown User',
+          'seller_email': user.email ?? '',
         };
       }
 
@@ -82,7 +82,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
       return {
         'seller_uid': user.uid,
         'seller_name': userData['name'] ?? user.displayName ?? 'Unknown User',
-        'seller_email':  user.email ?? '',
+        'seller_email': user.email ?? '',
       };
     } catch (e) {
       print('❌ Error getting user data: $e');
@@ -229,7 +229,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
           children: [
             Icon(
               backgroundColor == Colors.green
-                  ?  Icons.check_circle
+                  ? Icons.check_circle
                   : Icons.error,
               color: Colors.white,
               size: 24,
@@ -238,10 +238,10 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
             Expanded(
               child: Text(
                 message,
-                style:  const TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors. white,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -270,7 +270,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children:  [
+                children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -278,7 +278,7 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A5F),
-                      borderRadius:  BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'GC',
