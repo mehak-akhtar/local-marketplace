@@ -34,7 +34,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   void _markAsRead() async {
-    final currentUser = ref.read(authStateProvider). value;
+    final currentUser = ref.read(authStateProvider).value;
     if (currentUser != null) {
       final chatService = ref.read(chatServiceProvider);
       await chatService.markMessagesAsRead(widget.chatId, currentUser.uid);
@@ -49,20 +49,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController. text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty) return;
 
     final currentUser = ref.read(authStateProvider).value;
     if (currentUser == null) return;
 
-    final chatService = ref. read(chatServiceProvider);
-    final messageText = _messageController.text. trim();
+    final chatService = ref.read(chatServiceProvider);
+    final messageText = _messageController.text.trim();
     _messageController.clear();
 
     try {
       await chatService.sendMessage(
         chatId: widget.chatId,
-        senderId: currentUser. uid,
-        senderName: currentUser.displayName ??  'User',
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName ?? 'User',
         text: messageText,
       );
 
@@ -75,8 +75,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
-        _scrollController. animateTo(
-          _scrollController. position.maxScrollExtent,
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -100,7 +100,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(chatMessagesProvider(widget.chatId));
-    final currentUser = ref.watch(authStateProvider). value;
+    final currentUser = ref.watch(authStateProvider).value;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8C87C),
@@ -125,7 +125,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF1E3A5F),
-                              borderRadius: BorderRadius. circular(8),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
                               'GC',
@@ -198,7 +198,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           'Online',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors. green,
+                            color: Colors.green,
                           ),
                         ),
                       ],
@@ -247,7 +247,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             vertical: 10,
                           ),
                           constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size. width * 0.7,
+                            maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
                           decoration: BoxDecoration(
                             color: isMe

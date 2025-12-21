@@ -3,7 +3,7 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 
 class ChatService {
-  final FirebaseFirestore _firestore = FirebaseFirestore. instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Get or create chat room between two users
   Future<String> getOrCreateChatRoom(
@@ -14,12 +14,12 @@ class ChatService {
       ) async {
     try {
       // Create a consistent chat ID (alphabetically sorted)
-      final participants = [currentUserId, otherUserId].. sort();
+      final participants = [currentUserId, otherUserId]..sort();
       final chatId = participants.join('_');
 
-      final chatDoc = await _firestore.collection('chats').doc(chatId). get();
+      final chatDoc = await _firestore.collection('chats').doc(chatId).get();
 
-      if (! chatDoc.exists) {
+      if (!chatDoc.exists) {
         // Create new chat room
         await _firestore.collection('chats').doc(chatId).set({
           'participants': participants,
@@ -66,12 +66,12 @@ class ChatService {
       });
 
       // Update chat room's last message
-      final chatDoc = await _firestore. collection('chats').doc(chatId).get();
-      final participants = List<String>.from(chatDoc. data()? ['participants'] ?? []);
+      final chatDoc = await _firestore.collection('chats').doc(chatId).get();
+      final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
 
       // Increment unread count for the other user
       final otherUserId = participants.firstWhere((id) => id != senderId, orElse: () => '');
-      if (otherUserId. isNotEmpty) {
+      if (otherUserId.isNotEmpty) {
         final currentUnreadCount = Map<String, dynamic>.from(chatDoc.data()?['unreadCount'] ?? {});
         currentUnreadCount[otherUserId] = (currentUnreadCount[otherUserId] ?? 0) + 1;
 
@@ -91,7 +91,7 @@ class ChatService {
   Stream<List<ChatMessage>> getMessages(String chatId) {
     return _firestore
         .collection('chats')
-        . doc(chatId)
+        .doc(chatId)
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots()
@@ -172,7 +172,7 @@ class ChatService {
       await batch.commit();
 
       // Delete chat room
-      await _firestore.collection('chats'). doc(chatId).delete();
+      await _firestore.collection('chats').doc(chatId).delete();
     } catch (e) {
       print('Error deleting chat: $e');
       rethrow;

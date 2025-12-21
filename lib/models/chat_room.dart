@@ -10,10 +10,10 @@ class ChatRoom {
 
   ChatRoom({
     required this.id,
-    required this. participants,
+    required this.participants,
     required this.participantDetails,
-    required this. lastMessage,
-    required this. lastMessageTime,
+    required this.lastMessage,
+    required this.lastMessageTime,
     required this.unreadCount,
   });
 

@@ -12,11 +12,11 @@ class ChatMessage {
 
   ChatMessage({
     required this.id,
-    required this. chatId,
-    required this. senderId,
-    required this. senderName,
+    required this.chatId,
+    required this.senderId,
+    required this.senderName,
     required this.text,
-    required this. timestamp,
+    required this.timestamp,
     this.isRead = false,
     this.imageUrl,
   });
