@@ -24,17 +24,21 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
   // Text controllers for each field
   final Map<String, TextEditingController> controllers = {};
 
+  // Dropdown options
+  final List<String> transmissionTypes = ['Manual', 'Automatic', 'CVT', 'Semi-Automatic'];
+  final List<String> fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'CNG', 'LPG'];
+
   @override
   void initState() {
     super.initState();
-    // Initialize controllers for each field
-    carDetails.keys.forEach((key) {
+    // Initialize controllers for text fields only (not dropdowns)
+    final textFields = ['Brand', 'Model', 'Variant', 'Year', 'KM Driven', 'Set Location'];
+    for (var key in textFields) {
       controllers[key] = TextEditingController();
-      // Add listener to update the map when text changes
-      controllers[key]! .addListener(() {
+      controllers[key]!.addListener(() {
         carDetails[key] = controllers[key]!.text;
       });
-    });
+    }
   }
 
   @override
@@ -100,9 +104,9 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
                   const SizedBox(height: 16),
                   _buildTextField('Year'),
                   const SizedBox(height: 16),
-                  _buildTextField('Transmission Type'),
+                  _buildDropdown('Transmission Type', transmissionTypes),
                   const SizedBox(height: 16),
-                  _buildTextField('Fuel Type'),
+                  _buildDropdown('Fuel Type', fuelTypes),
                   const SizedBox(height: 16),
                   _buildTextField('KM Driven'),
                   const SizedBox(height: 16),
@@ -112,20 +116,7 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Print the data (for debugging)
-                        print('Car Details from sell_details_screen: $carDetails');
-
-                        // Navigate to next screen with the data
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SellPriceScreen(
-                              carDetails: Map<String, String>.from(carDetails),
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: _validateAndNavigate,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A5F),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -147,6 +138,116 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Validate all fields before navigation
+  void _validateAndNavigate() {
+    // Validate Brand
+    if (carDetails['Brand']?.trim().isEmpty ?? true) {
+      _showError('Brand is required');
+      return;
+    }
+    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(carDetails['Brand']!)) {
+      _showError('Brand must contain only letters');
+      return;
+    }
+
+    // Validate Model
+    if (carDetails['Model']?.trim().isEmpty ?? true) {
+      _showError('Model is required');
+      return;
+    }
+
+    // Validate Variant
+    if (carDetails['Variant']?.trim().isEmpty ?? true) {
+      _showError('Variant is required');
+      return;
+    }
+
+    // Validate Year
+    if (carDetails['Year']?.trim().isEmpty ?? true) {
+      _showError('Year is required');
+      return;
+    }
+    final year = int.tryParse(carDetails['Year']!);
+    if (year == null) {
+      _showError('Year must be a valid number');
+      return;
+    }
+    if (year < 1900 || year > 2025) {
+      _showError('Year must be between 1900 and 2025');
+      return;
+    }
+
+    // Validate Transmission Type
+    if (carDetails['Transmission Type']?.trim().isEmpty ?? true) {
+      _showError('Transmission Type is required');
+      return;
+    }
+
+    // Validate Fuel Type
+    if (carDetails['Fuel Type']?.trim().isEmpty ?? true) {
+      _showError('Fuel Type is required');
+      return;
+    }
+
+    // Validate KM Driven
+    if (carDetails['KM Driven']?.trim().isEmpty ?? true) {
+      _showError('KM Driven is required');
+      return;
+    }
+    final kmDriven = int.tryParse(carDetails['KM Driven']!);
+    if (kmDriven == null) {
+      _showError('KM Driven must be a valid number');
+      return;
+    }
+    if (kmDriven < 0) {
+      _showError('KM Driven must be a positive number');
+      return;
+    }
+
+    // Validate Location
+    if (carDetails['Set Location']?.trim().isEmpty ?? true) {
+      _showError('Location is required');
+      return;
+    }
+
+    // All validations passed, navigate to next screen
+    print('Car Details from sell_details_screen: $carDetails');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SellPriceScreen(
+          carDetails: Map<String, String>.from(carDetails),
+        ),
+      ),
+    );
+  }
+
+  // Show error message
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
@@ -180,8 +281,51 @@ class _SellDetailsScreenState extends State<SellDetailsScreen> {
           color: Color(0xFF1E3A5F),
         ),
         keyboardType: label == 'Year' || label == 'KM Driven'
-            ? TextInputType. number
-            : TextInputType. text,
+            ? TextInputType.number
+            : TextInputType.text,
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String label, List<String> options) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8C87C),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF1E3A5F),
+          width: 2,
+        ),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: carDetails[label]?.isNotEmpty == true ? carDetails[label] : null,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1E3A5F),
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        dropdownColor: const Color(0xFFE8C87C),
+        style: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFF1E3A5F),
+        ),
+        items: options.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          setState(() {
+            carDetails[label] = newValue ?? '';
+          });
+        },
       ),
     );
   }

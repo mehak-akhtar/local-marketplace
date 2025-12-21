@@ -92,35 +92,77 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
 
   // List car to Firestore with proper error handling
   Future<void> _listCarToFirestore() async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-    // Check if car details are empty
-    if (updatedCarDetails.isEmpty) {
-      updatedCarDetails['createdAt']=FieldValue.serverTimestamp();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Car details are empty.  Please fill in all required fields.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+    // Validate required fields first
+    if (!_validateCarDetails()) {
       return;
     }
+
+    setState(() {
+      _isListingCar = true;
+    });
+
     try {
+      // Get current user data
+      final userData = await _getCurrentUserData();
 
-      await _firestore.collection('global').add(updatedCarDetails);
+      // Prepare the final car data with all required fields
+      final carData = {
+        // Basic car details
+        'Brand': updatedCarDetails['Brand'],
+        'Model': updatedCarDetails['Model'],
+        'Variant': updatedCarDetails['Variant'],
+        'Year': int.tryParse(updatedCarDetails['Year'].toString()) ?? 0,
+        'Transmission Type': updatedCarDetails['Transmission Type'],
+        'Fuel Type': updatedCarDetails['Fuel Type'],
+        'KM Driven': int.tryParse(updatedCarDetails['KM Driven'].toString()) ?? 0,
+        'Set Location': updatedCarDetails['Set Location'],
+        
+        // Car name and pricing
+        'Car Name': updatedCarDetails['Car Name'] ?? '${updatedCarDetails['Brand']} ${updatedCarDetails['Model']}',
+        'Price': updatedCarDetails['Price'] ?? '',
+        'Estimated Price': updatedCarDetails['Estimated Price'] ?? updatedCarDetails['Price'] ?? '',
+        'Final Estimated Price': updatedCarDetails['Final Estimated Price'] ?? updatedCarDetails['Price'] ?? '',
+        
+        // Optional details
+        'Address': updatedCarDetails['Address'] ?? '',
+        'Pin Code': updatedCarDetails['Pin Code'] ?? '',
+        'Engine Capacity': updatedCarDetails['Engine Capacity'] ?? 'N/A',
+        
+        // Seller information
+        'seller_uid': userData['seller_uid'],
+        'seller_name': userData['seller_name'],
+        'seller_email': userData['seller_email'],
+        
+        // Status and timestamp
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+      };
 
-      print('✅ Car Listed successfully! ');
+      // Add car to Firestore 'global' collection
+      final docRef = await FirebaseFirestore.instance
+          .collection('global')
+          .add(carData);
 
-      // Show success snackbar
+      print('✅ Car listed successfully with ID: ${docRef.id}');
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Car listed successfully! '),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
+        setState(() {
+          _isListingCar = false;
+        });
+
+        // Show success message
+        _showSnackBar(
+          '✅ Car listed successfully! Your car is now visible to buyers.',
+          Colors.green,
         );
+
+        // Navigate to home screen after a short delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            // Pop all screens and go back to home
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        });
       }
     } on FirebaseException catch (e) {
       // Handle Firebase-specific errors
@@ -129,25 +171,29 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
       String errorMessage;
       switch (e.code) {
         case 'permission-denied':
-          errorMessage = '❌ Permission denied. You don\'t have access to list cars.';
+          errorMessage = '❌ Permission denied. Please check your Firestore security rules.';
           break;
         case 'unavailable':
           errorMessage = '❌ Service unavailable. Please check your internet connection.';
           break;
         case 'deadline-exceeded':
-          errorMessage = '❌ Request timeout. Please try again. ';
+          errorMessage = '❌ Request timeout. Please try again.';
           break;
         case 'not-found':
           errorMessage = '❌ Collection not found. Please contact support.';
           break;
         default:
-          errorMessage = '❌ Failed to list car:  ${e.message ??  'Unknown error'}';
+          errorMessage = '❌ Failed to list car: ${e.message ?? 'Unknown error'}';
       }
 
       if (mounted) {
+        setState(() {
+          _isListingCar = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:  Text(errorMessage),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
@@ -158,7 +204,20 @@ class _SellCarDetailsScreenState extends State<SellCarDetailsScreen> {
           ),
         );
       }
-      rethrow;
+    } catch (e) {
+      // Handle other errors
+      print('❌ Unexpected Error: $e');
+
+      if (mounted) {
+        setState(() {
+          _isListingCar = false;
+        });
+
+        _showSnackBar(
+          '❌ An unexpected error occurred: ${e.toString()}',
+          Colors.red,
+        );
+      }
     }
   }
 
