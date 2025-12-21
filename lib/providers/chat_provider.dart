@@ -10,7 +10,7 @@ final chatServiceProvider = Provider<ChatService>((ref) {
 
 // Stream of user's chat rooms
 final userChatsProvider = StreamProvider<List<ChatRoom>>((ref) {
-  final currentUser = ref.watch(authStateProvider). value;
+  final currentUser = ref.watch(authStateProvider).value;
   if (currentUser == null) {
     return Stream.value([]);
   }
@@ -20,7 +20,7 @@ final userChatsProvider = StreamProvider<List<ChatRoom>>((ref) {
 });
 
 // Stream of messages for a specific chat
-final chatMessagesProvider = StreamProvider. family<List<ChatMessage>, String>((ref, chatId) {
-  final chatService = ref. watch(chatServiceProvider);
+final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((ref, chatId) {
+  final chatService = ref.watch(chatServiceProvider);
   return chatService.getMessages(chatId);
 });

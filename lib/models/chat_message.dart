@@ -8,18 +8,16 @@ class ChatMessage {
   final String text;
   final DateTime timestamp;
   final bool isRead;
-  final bool isAiGenerated;
   final String? imageUrl;
 
   ChatMessage({
     required this.id,
-    required this. chatId,
-    required this. senderId,
-    required this. senderName,
+    required this.chatId,
+    required this.senderId,
+    required this.senderName,
     required this.text,
-    required this. timestamp,
+    required this.timestamp,
     this.isRead = false,
-    this.isAiGenerated = false,
     this.imageUrl,
   });
 
@@ -33,7 +31,6 @@ class ChatMessage {
       text: data['text'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
-      isAiGenerated: data['isAiGenerated'] ?? false,
       imageUrl: data['imageUrl'],
     );
   }
@@ -46,7 +43,6 @@ class ChatMessage {
       'text': text,
       'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
-      'isAiGenerated': isAiGenerated,
       'imageUrl': imageUrl,
     };
   }
