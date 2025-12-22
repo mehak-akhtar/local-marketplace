@@ -100,7 +100,7 @@ class _BookTestDriveScreenState extends ConsumerState<BookTestDriveScreen> {
       return;
     }
 
-    // Navigate to payment screen with booking details
+    // ✅ Navigate to payment screen with FULL car data
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -109,6 +109,7 @@ class _BookTestDriveScreenState extends ConsumerState<BookTestDriveScreen> {
           carId: widget.carId,
           testDriveDate: _selectedDate!,
           testDriveTime: _selectedTime!,
+          carData: car, // ✅ Pass complete car data
         ),
       ),
     );

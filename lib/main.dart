@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olxapp/providers/auth_provider.dart';
+import 'package:olxapp/services/local_notifications_service.dart';
 import 'auth_screens/login_screen.dart';
 import 'bottom_bar.dart';
 import 'firebase_options.dart';
@@ -14,6 +15,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // ✅ Initialize local notifications
+  await LocalNotificationService().initialize();
   runApp(
     const ProviderScope(
       child: MyApp(),

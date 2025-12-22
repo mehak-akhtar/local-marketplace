@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:olxapp/auth_screens/auth_service.dart';
 import 'package:olxapp/auth_screens/login_screen.dart';
+import 'account_subscreens/booked_cars.dart';
 import 'account_subscreens/chat_list_screen.dart';
 import 'account_subscreens/feedback_screen.dart';
 import 'account_subscreens/notifications_screen.dart';
@@ -598,7 +599,22 @@ class _AccountScreenState extends State<AccountScreen> {
                         );
                       },
                     ),
+
                     const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      'My Bookings',
+                      Icons. event_available,
+                          () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookedCarsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildMenuItem(
                       context,
                       'Feedback',

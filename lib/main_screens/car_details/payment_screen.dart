@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String carName;
   final String carId;
   final DateTime testDriveDate;
   final TimeOfDay testDriveTime;
+  final Map<String, dynamic> carData; // ✅ Added full car data
 
   const PaymentScreen({
     Key? key,
@@ -12,6 +16,7 @@ class PaymentScreen extends StatefulWidget {
     required this.carId,
     required this.testDriveDate,
     required this.testDriveTime,
+    required this.carData, // ✅ Required parameter
   }) : super(key: key);
 
   @override
@@ -20,27 +25,174 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   String selectedPaymentMethod = 'PhonePe';
+  bool _isProcessing = false;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // ✅ Extract car details from passed data
+  String get carName => widget.carData['Car Name'] ?? 'Unknown Car';
+  String get carPrice => widget.carData['Final Estimated Price'] ??
+      widget.carData['Estimated Price'] ??
+      'N/A';
+  int get kmDriven => widget. carData['KM Driven'] ?? 0;
+  String get fuelType => widget.carData['Fuel Type'] ?? 'Unknown';
+  String get location => widget.carData['Set Location'] ?? 'Unknown';
+  String get carImage => widget.carData['Image1'] ?? '';
+
+  // ✅ Process payment and save booking
+  Future<void> _processPayment() async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        _showSnackBar('Please log in to complete booking', isError: true);
+        setState(() {
+          _isProcessing = false;
+        });
+        return;
+      }
+
+      // Create booking data
+      final bookingData = {
+        'carId': widget.carId,
+        'carName': carName,
+        'carPrice': carPrice,
+        'testDriveDate':  Timestamp.fromDate(widget.testDriveDate),
+        'testDriveTime': '${widget.testDriveTime.hour}:${widget.testDriveTime.minute}',
+        'paymentMethod': selectedPaymentMethod,
+        'bookedAt': FieldValue.serverTimestamp(),
+        'status': 'confirmed',
+        'userId': currentUser.uid,
+        'userName': currentUser.displayName ??  'User',
+        'userEmail': currentUser.email ?? '',
+      };
+
+      // Save to user's my_bookings subcollection
+      await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('my_bookings')
+          .add(bookingData);
+
+      setState(() {
+        _isProcessing = false;
+      });
+
+      // Show success message
+      _showSuccessDialog();
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+      });
+      _showSnackBar('Error processing payment: $e', isError: true);
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context:  context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius:  BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors. green,
+                size: 64,
+              ),
+            ),
+            const SizedBox(height:  20),
+            const Text(
+              'Booking Confirmed!',
+              style: TextStyle(
+                fontSize:  22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E3A5F),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your test drive for $carName has been booked successfully.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close dialog
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A5F),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child:  const Text(
+                  'Done',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ?  Colors.red : const Color(0xFF1E3A5F),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: Column(
+        child:  Column(
           children: [
             // Header
             Container(
               color: const Color(0xFFE8C87C),
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets. all(16),
+              child:  Row(
+                mainAxisAlignment:  MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
-                    decoration: BoxDecoration(
+                    decoration:  BoxDecoration(
                       color: const Color(0xFF1E3A5F),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -55,10 +207,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   IconButton(
                     icon: const Icon(
-                      Icons.menu,
-                      color: Color(0xFF1E3A5F),
+                      Icons.arrow_back,
+                      color:  Color(0xFF1E3A5F),
                     ),
-                    onPressed: () {},
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
@@ -69,7 +221,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Car Card
+                    // Car Card - ✅ Now uses actual car data
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -78,7 +230,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           BoxShadow(
                             color: Colors.grey.withOpacity(0.3),
                             spreadRadius: 2,
-                            blurRadius: 8,
+                            blurRadius:  8,
                           ),
                         ],
                       ),
@@ -95,51 +247,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                             child: Stack(
                               children: [
-                                Center(
+                                carImage.isNotEmpty
+                                    ? ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top:  Radius.circular(16),
+                                  ),
+                                  child: Image.network(
+                                    carImage,
+                                    width: double.infinity,
+                                    height: 150,
+                                    fit: BoxFit. cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.directions_car,
+                                          size: 70,
+                                          color: Colors.grey[600],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                                    : Center(
                                   child: Icon(
                                     Icons.directions_car,
                                     size: 70,
                                     color: Colors.grey[600],
                                   ),
                                 ),
-                                const Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Icon(
-                                    Icons.favorite_border,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
-                          // Car Details
+                          // Car Details - ✅ Now shows real data
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Audi Q3',
-                                  style: TextStyle(
+                                Text(
+                                  carName,
+                                  style: const TextStyle(
                                     fontSize: 22,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight:  FontWeight.bold,
                                     color: Color(0xFF1E3A5F),
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  '2,5,600 KM  •  Diesel  •  Tamil Nadu',
-                                  style: TextStyle(
+                                const SizedBox(height:  8),
+                                Text(
+                                  '${NumberFormat('#,###').format(kmDriven)} KM  •  $fuelType  •  $location',
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Colors.grey,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  '₹13.5 Lakh',
-                                  style: TextStyle(
+                                Text(
+                                  carPrice,
+                                  style:  const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF1E3A5F),
@@ -152,9 +316,60 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
+                    // Booking Details
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius. circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            spreadRadius: 1,
+                            blurRadius:  5,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Test Drive Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A5F),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                DateFormat('EEEE, MMMM d, yyyy').format(widget.testDriveDate),
+                                style:  const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${widget.testDriveTime.hour}:${widget.testDriveTime.minute. toString().padLeft(2, '0')}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
                     // Payment Methods
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisAlignment:  MainAxisAlignment.spaceEvenly,
                       children: [
                         _buildPaymentMethodButton('PhonePe'),
                         _buildPaymentMethodButton('Gpay'),
@@ -171,24 +386,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ],
                     ),
                     const SizedBox(height: 30),
-                    // Pay Button
+                    // Pay Button - ✅ Now functional
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed:  _isProcessing ? null : _processPayment,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A5F),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:  const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        child: const Text(
-                          'Pay',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                        child: _isProcessing
+                            ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
                             color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : Text(
+                          'Pay for $carName',
+                          style:  const TextStyle(
+                            fontSize: 18,
+                            fontWeight:  FontWeight.w600,
+                            color:  Colors.white,
                           ),
                         ),
                       ),
@@ -212,7 +436,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+        padding: const EdgeInsets. symmetric(horizontal: 30, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1E3A5F) : Colors.white,
           borderRadius: BorderRadius.circular(25),
@@ -230,10 +454,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
         child: Text(
           method,
-          style: TextStyle(
+          style:  TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF1E3A5F),
+            color: isSelected ? Colors.white :  const Color(0xFF1E3A5F),
           ),
         ),
       ),
@@ -249,7 +473,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color:  Colors.grey.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 5,
           ),
