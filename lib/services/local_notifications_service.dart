@@ -217,17 +217,23 @@ class LocalNotificationService {
     );
 
     try {
-      await _notifications.zonedSchedule(
-        id,
-        title,
-        body,
-        tz.TZDateTime.from(scheduledTime, tz.local),
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: payload,
-      );
+      try {
+        await _notifications.zonedSchedule(
+          id,
+          title,
+          body,
+          tz.TZDateTime.from(scheduledTime, tz.local),
+          details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          // uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+        print('✅ Notification scheduled for $scheduledTime with ID: $id');
+        return id;
+      } catch (e) {
+        print('❌ Error scheduling notification: $e');
+        return -1;
+      }
       print('✅ Notification scheduled for $scheduledTime with ID: $id');
       return id;
     } catch (e) {
