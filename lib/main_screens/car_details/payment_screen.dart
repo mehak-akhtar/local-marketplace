@@ -121,12 +121,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         bookingId: bookingRef.id,
       );
 
-      // Update booking with reminder notification ID
-      if (reminderNotificationId != -1) {
-        await bookingRef.update({
-          'reminderNotificationId': reminderNotificationId,
-        });
-      }
+      // Store reminder notification ID in booking document for future reference
+      await bookingRef.update({
+        'reminderNotificationId': reminderNotificationId,
+        'reminderScheduled': reminderNotificationId != -1,
+      });
 
       setState(() {
         _isProcessing = false;

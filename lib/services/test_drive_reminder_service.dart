@@ -27,8 +27,8 @@ class TestDriveReminderService {
         return -1;
       }
 
-      // Generate unique notification ID using full milliseconds to avoid collisions
-      final notificationId = testDriveDateTime.millisecondsSinceEpoch;
+      // Generate unique notification ID combining timestamp and hash of buyer UID to avoid collisions
+      final notificationId = (testDriveDateTime.millisecondsSinceEpoch + buyerUid.hashCode) & 0x7FFFFFFF;
 
       // Schedule the notification
       final scheduledId = await _localNotifications.scheduleNotification(
@@ -40,7 +40,7 @@ class TestDriveReminderService {
       );
 
       if (scheduledId != -1) {
-        print('✅ Test drive reminder scheduled for $reminderTime');
+        print('✅ Test drive reminder scheduled for $reminderTime with ID: $scheduledId');
         
         // Store reminder notification in Firestore for the buyer
         await _firestore.collection('notifications').add({
@@ -54,7 +54,7 @@ class TestDriveReminderService {
             'carName': carName,
             'time': time,
             'testDriveDateTime': Timestamp.fromDate(testDriveDateTime),
-            'notificationId': scheduledId,
+            'notificationId': notificationId,
             'bookingId': bookingId ?? '',
           },
           'scheduled': true,
