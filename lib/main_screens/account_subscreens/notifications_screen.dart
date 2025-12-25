@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'chatdetails_screen.dart';
+import 'booked_cars.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key?  key}) : super(key: key);
+  const NotificationsScreen({Key? key}) : super(key: key);
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -156,14 +158,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  void _handleNotificationTap(String type, Map<String, dynamic> data) {
+    switch (type) {
+      case 'message':
+        // Navigate to ChatDetailScreen
+        final chatId = data['chatId'] as String?;
+        final senderName = data['senderName'] as String? ?? 'User';
+        final senderId = data['senderId'] as String?;
+        
+        if (chatId != null && senderId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                chatId: chatId,
+                otherUserId: senderId,
+                name: senderName,
+                avatarColor: Colors.blue,
+              ),
+            ),
+          );
+        }
+        break;
+      
+      case 'test_drive_booking':
+      case 'test_drive_reminder':
+        // Navigate to BookedCarsScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const BookedCarsScreen(),
+          ),
+        );
+        break;
+      
+      default:
+        // For other notification types, just mark as read
+        break;
+    }
+  }
+
   IconData _getNotificationIcon(String type) {
     switch (type) {
       case 'message':
         return Icons.message;
       case 'favorite':
-        return Icons. favorite;
+        return Icons.favorite;
       case 'car_listing':
-        return Icons. directions_car;
+        return Icons.directions_car;
+      case 'test_drive_booking':
+        return Icons.event_available;
+      case 'test_drive_reminder':
+        return Icons.alarm;
       case 'system':
         return Icons.info;
       default:
@@ -179,6 +225,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Colors.red;
       case 'car_listing':
         return Colors.green;
+      case 'test_drive_booking':
+        return Colors.blue;
+      case 'test_drive_reminder':
+        return Colors.orange;
       case 'system':
         return Colors.orange;
       default:
@@ -379,6 +429,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final isRead = notificationData['isRead'] ??  false;
                       final timestamp =
                       notificationData['timestamp'] as Timestamp? ;
+                      final data = notificationData['data'] as Map<String, dynamic>? ?? {};
 
                       String timeAgo = '';
                       if (timestamp != null) {
@@ -413,6 +464,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             type,
                             isRead,
                             timeAgo,
+                            data,
                           ),
                         ),
                       );
@@ -434,21 +486,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       String type,
       bool isRead,
       String timeAgo,
+      Map<String, dynamic> data,
       ) {
     return InkWell(
         onTap: () {
-          if (! isRead) {
+          if (!isRead) {
             _markAsRead(notificationId);
           }
-          // You can add navigation to specific screens based on notification type
+          // Navigate based on notification type
+          _handleNotificationTap(type, data);
         },
         child: Container(
-          padding: const EdgeInsets. all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isRead
-                ? const Color(0xFF1E3A5F). withOpacity(0.7)
+                ? const Color(0xFF1E3A5F).withOpacity(0.7)
                 : const Color(0xFF1E3A5F),
-            borderRadius: BorderRadius. circular(25),
+            borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),

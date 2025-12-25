@@ -1,5 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class LocalNotificationService {
   static final LocalNotificationService _instance = LocalNotificationService._internal();
@@ -12,6 +14,9 @@ class LocalNotificationService {
   /// Initialize notification service
   Future<void> initialize() async {
     if (_initialized) return;
+
+    // Initialize timezone database
+    tz.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -162,6 +167,73 @@ class LocalNotificationService {
       body: '$carName price dropped from $oldPrice to $newPrice',
       payload: 'price_drop',
     );
+  }
+
+  /// Show immediate notification for test drive reminder
+  /// Note: This is for immediate reminders, not scheduled ones.
+  /// For scheduled reminders, use TestDriveReminderService instead.
+  Future<void> notifyTestDriveReminder({
+    required String carName,
+    required String time,
+  }) async {
+    await showNotification(
+      id: DateTime.now().millisecondsSinceEpoch,
+      title: '⏰ Test Drive Reminder',
+      body: 'You have a test drive for $carName tomorrow at $time',
+      payload: 'test_drive_reminder',
+    );
+  }
+
+  /// Schedule a notification for future delivery
+  Future<int> scheduleNotification({
+    required int id,
+    required DateTime scheduledTime,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'getcars_channel',
+      'Get Cars Notifications',
+      channelDescription: 'Notifications for Get Cars app',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF1E3A5F),
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+      print('✅ Notification scheduled for $scheduledTime with ID: $id');
+      return id;
+    } catch (e) {
+      print('❌ Error scheduling notification: $e');
+      return -1;
+    }
   }
 
   /// Cancel a notification

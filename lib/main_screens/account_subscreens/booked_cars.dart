@@ -3,9 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../car_details/car_details.dart';
+import '../../services/test_drive_reminder_service.dart';
 
 class BookedCarsScreen extends StatefulWidget {
-  const BookedCarsScreen({Key?  key}) : super(key: key);
+  const BookedCarsScreen({Key? key}) : super(key: key);
 
   @override
   State<BookedCarsScreen> createState() => _BookedCarsScreenState();
@@ -14,6 +15,7 @@ class BookedCarsScreen extends StatefulWidget {
 class _BookedCarsScreenState extends State<BookedCarsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TestDriveReminderService _reminderService = TestDriveReminderService();
 
   @override
   Widget build(BuildContext context) {
@@ -507,6 +509,28 @@ class _BookedCarsScreenState extends State<BookedCarsScreen> {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser != null) {
+        // Get booking data to check for reminder notification ID
+        final bookingDoc = await _firestore
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('my_bookings')
+            .doc(bookingId)
+            .get();
+
+        if (bookingDoc.exists) {
+          final bookingData = bookingDoc.data();
+          final reminderNotificationId = bookingData?['reminderNotificationId'] as int?;
+          
+          // Cancel the scheduled reminder if it exists
+          if (reminderNotificationId != null && reminderNotificationId != -1) {
+            await _reminderService.cancelReminder(reminderNotificationId);
+          }
+          
+          // Also cancel by booking ID (in case notification is in Firestore)
+          await _reminderService.cancelReminderByBookingId(bookingId);
+        }
+
+        // Delete the booking
         await _firestore
             .collection('users')
             .doc(currentUser.uid)
