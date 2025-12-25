@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olxapp/providers/auth_provider.dart';
 import 'package:olxapp/services/local_notifications_service.dart';
+import 'package:olxapp/services/fcm_service.dart';
 import 'auth_screens/login_screen.dart';
 import 'bottom_bar.dart';
 import 'firebase_options.dart';
@@ -18,6 +19,10 @@ void main() async {
 
   // ✅ Initialize local notifications
   await LocalNotificationService().initialize();
+  
+  // ✅ Initialize FCM
+  await FCMService().initialize();
+  
   runApp(
     const ProviderScope(
       child: MyApp(),

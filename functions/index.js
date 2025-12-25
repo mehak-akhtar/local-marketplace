@@ -41,3 +41,53 @@ exports.sendNotification = functions.firestore
       console.error('❌ Error sending FCM:', error);
     }
   });
+
+// ✅ Watch fcm_queue collection and send FCM
+exports.sendFCMNotification = functions.firestore
+  .document('fcm_queue/{queueId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data();
+    
+    if (data.status !== 'pending') return;
+
+    const message = {
+      token: data.token,
+      notification: {
+        title: data.notification.title,
+        body: data.notification.body,
+      },
+      data: data.data,
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'getcars_channel',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    try {
+      await admin.messaging().send(message);
+      console.log('✅ FCM sent successfully');
+      
+      // Mark as sent
+      await snap.ref.update({ 
+        status: 'sent', 
+        sentAt: admin.firestore.FieldValue.serverTimestamp() 
+      });
+    } catch (error) {
+      console.error('❌ Error sending FCM:', error);
+      await snap.ref.update({ 
+        status: 'failed', 
+        error: error.message 
+      });
+    }
+  });

@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'local_notifications_service.dart';
+import 'fcm_service.dart';
 
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalNotificationService _localNotifications = LocalNotificationService();
+  final FCMService _fcmService = FCMService();
 
-  /// Send notification to Firestore AND show local notification
+  /// Send notification to Firestore AND send FCM push notification
   Future<void> sendNotification({
     required String userId,
     required String title,
@@ -28,20 +30,16 @@ class NotificationService {
         'data': data ??  {},
       });
 
-      // ✅ Show local notification if it's for current user
-      if (showLocal) {
-        final currentUser = _auth.currentUser;
-        if (currentUser != null && currentUser.uid == userId) {
-          await _localNotifications. showNotification(
-            id:  DateTime.now().millisecondsSinceEpoch ~/ 1000,
-            title: title,
-            body: message,
-            payload: type,
-          );
-        }
-      }
+      // ✅ Send FCM to user's device (works across devices)
+      await _fcmService.sendFCMToUser(
+        userId: userId,
+        title: title,
+        body: message,
+        type: type,
+        additionalData: data?.map((key, value) => MapEntry(key, value.toString())),
+      );
 
-      print('✅ Notification sent:  $title');
+      print('✅ Notification sent to Firestore and FCM: $title');
     } catch (e) {
       print('❌ Error sending notification: $e');
     }
@@ -69,12 +67,6 @@ class NotificationService {
         'favoritedBy': currentUser.uid,
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyCarFavorited(
-      carName: carName,
-      userName: userName,
-    );
   }
 
   /// Notify seller when someone books a test drive
@@ -101,14 +93,6 @@ class NotificationService {
         'bookingId': bookingId ?? '',
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyTestDriveBooked(
-      carName: carName,
-      buyerName: buyerName,
-      date: date,
-      time: time,
-    );
   }
 
   /// Notify seller when someone starts a chat
@@ -132,12 +116,6 @@ class NotificationService {
         'senderName': senderName,
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyNewMessage(
-      senderName: senderName,
-      message: message,
-    );
   }
 
   /// Notify when car is sold
@@ -157,12 +135,6 @@ class NotificationService {
         'carName': carName,
         'buyerName':  buyerName,
       },
-    );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyCarSold(
-      carName: carName,
-      buyerName:  buyerName,
     );
   }
 
@@ -202,12 +174,5 @@ class NotificationService {
         },
       );
     }
-
-    // ✅ Show local notification
-    await _localNotifications.notifyPriceDrop(
-      carName: carName,
-      oldPrice: oldPrice,
-      newPrice: newPrice,
-    );
   }
 }
