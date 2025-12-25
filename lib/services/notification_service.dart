@@ -85,25 +85,28 @@ class NotificationService {
     required String buyerName,
     required String date,
     required String time,
+    String? bookingId,
   }) async {
     await sendNotification(
-      userId:  sellerUid,
+      userId: sellerUid,
       title: '🚗 New Test Drive Booking!',
       message: '$buyerName booked a test drive for $carName on $date at $time',
-      type: 'test_drive',
+      type: 'test_drive_booking',
       data: {
         'carId': carId,
         'carName': carName,
+        'buyerName': buyerName,
         'date': date,
-        'time':  time,
+        'time': time,
+        'bookingId': bookingId ?? '',
       },
     );
 
     // ✅ Show local notification
     await _localNotifications.notifyTestDriveBooked(
       carName: carName,
-      buyerName:  buyerName,
-      date:  date,
+      buyerName: buyerName,
+      date: date,
       time: time,
     );
   }

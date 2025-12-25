@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
+import 'notification_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // Get or create chat room between two users
   Future<String> getOrCreateChatRoom(
@@ -80,6 +82,14 @@ class ChatService {
           'lastMessageTime': FieldValue.serverTimestamp(),
           'unreadCount': currentUnreadCount,
         });
+
+        // Send notification to the receiver
+        await _notificationService.notifyNewMessage(
+          receiverUid: otherUserId,
+          senderName: senderName,
+          message: text,
+          chatId: chatId,
+        );
       }
     } catch (e) {
       print('Error sending message: $e');

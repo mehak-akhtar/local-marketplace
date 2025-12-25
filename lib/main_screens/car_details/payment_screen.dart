@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../services/notification_service.dart';
+import '../../services/test_drive_reminder_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String carName;
@@ -28,6 +30,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final NotificationService _notificationService = NotificationService();
+  final TestDriveReminderService _reminderService = TestDriveReminderService();
 
   // ✅ Extract car details from passed data
   String get carName => widget.carData['Car Name'] ?? 'Unknown Car';
@@ -62,22 +66,67 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'carId': widget.carId,
         'carName': carName,
         'carPrice': carPrice,
-        'testDriveDate':  Timestamp.fromDate(widget.testDriveDate),
+        'testDriveDate': Timestamp.fromDate(widget.testDriveDate),
         'testDriveTime': '${widget.testDriveTime.hour}:${widget.testDriveTime.minute}',
         'paymentMethod': selectedPaymentMethod,
         'bookedAt': FieldValue.serverTimestamp(),
         'status': 'confirmed',
         'userId': currentUser.uid,
-        'userName': currentUser.displayName ??  'User',
+        'userName': currentUser.displayName ?? 'User',
         'userEmail': currentUser.email ?? '',
       };
 
       // Save to user's my_bookings subcollection
-      await _firestore
+      final bookingRef = await _firestore
           .collection('users')
           .doc(currentUser.uid)
           .collection('my_bookings')
           .add(bookingData);
+
+      // Get seller information from car data
+      final sellerUid = widget.carData['seller_uid'] ?? '';
+      final buyerName = currentUser.displayName ?? 'A user';
+      
+      // Format date and time for notification
+      final dateStr = DateFormat('MMM d, yyyy').format(widget.testDriveDate);
+      final timeStr = '${widget.testDriveTime.hour}:${widget.testDriveTime.minute.toString().padLeft(2, '0')}';
+
+      // Send notification to seller about the booking
+      if (sellerUid.isNotEmpty) {
+        await _notificationService.notifyTestDriveBooked(
+          carId: widget.carId,
+          carName: carName,
+          sellerUid: sellerUid,
+          buyerName: buyerName,
+          date: dateStr,
+          time: timeStr,
+          bookingId: bookingRef.id,
+        );
+      }
+
+      // Schedule reminder notification 24 hours before test drive
+      final testDriveDateTime = DateTime(
+        widget.testDriveDate.year,
+        widget.testDriveDate.month,
+        widget.testDriveDate.day,
+        widget.testDriveTime.hour,
+        widget.testDriveTime.minute,
+      );
+
+      final reminderNotificationId = await _reminderService.scheduleTestDriveReminder(
+        testDriveDateTime: testDriveDateTime,
+        carName: carName,
+        time: timeStr,
+        buyerUid: currentUser.uid,
+        bookingId: bookingRef.id,
+      );
+
+      // Update booking with reminder notification ID
+      if (reminderNotificationId != -1) {
+        await bookingRef.update({
+          'reminderNotificationId': reminderNotificationId,
+        });
+      }
 
       setState(() {
         _isProcessing = false;
