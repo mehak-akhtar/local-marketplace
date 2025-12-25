@@ -169,7 +169,9 @@ class LocalNotificationService {
     );
   }
 
-  /// Show notification for test drive reminder
+  /// Show immediate notification for test drive reminder
+  /// Note: This is for immediate reminders, not scheduled ones.
+  /// For scheduled reminders, use TestDriveReminderService instead.
   Future<void> notifyTestDriveReminder({
     required String carName,
     required String time,

@@ -9,6 +9,11 @@ class TestDriveReminderService {
   final LocalNotificationService _localNotifications = LocalNotificationService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Generate unique notification ID for test drive reminders
+  static int generateNotificationId(DateTime testDriveDateTime, String buyerUid) {
+    return (testDriveDateTime.millisecondsSinceEpoch + buyerUid.hashCode) & 0x7FFFFFFF;
+  }
+
   /// Schedule a test drive reminder notification 24 hours before the test drive
   Future<int> scheduleTestDriveReminder({
     required DateTime testDriveDateTime,
@@ -18,17 +23,19 @@ class TestDriveReminderService {
     String? bookingId,
   }) async {
     try {
+      final now = DateTime.now();
+      
       // Calculate notification time (24 hours before)
       final reminderTime = testDriveDateTime.subtract(const Duration(hours: 24));
       
       // Only schedule if reminder time is in future
-      if (reminderTime.isBefore(DateTime.now())) {
+      if (reminderTime.isBefore(now)) {
         print('⚠️ Reminder time is in the past, not scheduling');
         return -1;
       }
 
-      // Generate unique notification ID combining timestamp and hash of buyer UID to avoid collisions
-      final notificationId = (testDriveDateTime.millisecondsSinceEpoch + buyerUid.hashCode) & 0x7FFFFFFF;
+      // Generate unique notification ID
+      final notificationId = generateNotificationId(testDriveDateTime, buyerUid);
 
       // Schedule the notification
       final scheduledId = await _localNotifications.scheduleNotification(
