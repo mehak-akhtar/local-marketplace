@@ -27,8 +27,8 @@ class TestDriveReminderService {
         return -1;
       }
 
-      // Generate unique notification ID based on timestamp
-      final notificationId = testDriveDateTime.millisecondsSinceEpoch ~/ 1000;
+      // Generate unique notification ID using full milliseconds to avoid collisions
+      final notificationId = testDriveDateTime.millisecondsSinceEpoch;
 
       // Schedule the notification
       final scheduledId = await _localNotifications.scheduleNotification(

@@ -6,7 +6,7 @@ import '../car_details/car_details.dart';
 import '../../services/test_drive_reminder_service.dart';
 
 class BookedCarsScreen extends StatefulWidget {
-  const BookedCarsScreen({Key?  key}) : super(key: key);
+  const BookedCarsScreen({Key? key}) : super(key: key);
 
   @override
   State<BookedCarsScreen> createState() => _BookedCarsScreenState();

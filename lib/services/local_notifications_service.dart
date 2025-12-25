@@ -175,7 +175,7 @@ class LocalNotificationService {
     required String time,
   }) async {
     await showNotification(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      id: DateTime.now().millisecondsSinceEpoch,
       title: '⏰ Test Drive Reminder',
       body: 'You have a test drive for $carName tomorrow at $time',
       payload: 'test_drive_reminder',

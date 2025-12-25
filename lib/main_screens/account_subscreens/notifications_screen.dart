@@ -6,7 +6,7 @@ import 'chatdetails_screen.dart';
 import 'booked_cars.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key?  key}) : super(key: key);
+  const NotificationsScreen({Key? key}) : super(key: key);
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -490,19 +490,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ) {
     return InkWell(
         onTap: () {
-          if (! isRead) {
+          if (!isRead) {
             _markAsRead(notificationId);
           }
           // Navigate based on notification type
           _handleNotificationTap(type, data);
         },
         child: Container(
-          padding: const EdgeInsets. all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isRead
-                ? const Color(0xFF1E3A5F). withOpacity(0.7)
+                ? const Color(0xFF1E3A5F).withOpacity(0.7)
                 : const Color(0xFF1E3A5F),
-            borderRadius: BorderRadius. circular(25),
+            borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),

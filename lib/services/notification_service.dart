@@ -124,7 +124,7 @@ class NotificationService {
     await sendNotification(
       userId: receiverUid,
       title: '💬 New message from $senderName',
-      message: message. length > 50 ? '${message.substring(0, 50)}...' : message,
+      message: message.length > 50 ? '${message.substring(0, 50)}...' : message,
       type: 'message',
       data: {
         'chatId': chatId,
