@@ -28,17 +28,15 @@ class NotificationService {
         'data': data ??  {},
       });
 
-      // ✅ Show local notification if it's for current user
+      // ✅ Show local notification on this device (will be replaced by FCM later)
       if (showLocal) {
-        final currentUser = _auth.currentUser;
-        if (currentUser != null && currentUser.uid == userId) {
-          await _localNotifications. showNotification(
-            id:  DateTime.now().millisecondsSinceEpoch ~/ 1000,
-            title: title,
-            body: message,
-            payload: type,
-          );
-        }
+        await _localNotifications.showNotification(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: title,
+          body: message,
+          payload: type,
+        );
+        print('🔔 Local notification shown: $title');
       }
 
       print('✅ Notification sent:  $title');
@@ -69,12 +67,6 @@ class NotificationService {
         'favoritedBy': currentUser.uid,
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyCarFavorited(
-      carName: carName,
-      userName: userName,
-    );
   }
 
   /// Notify seller when someone books a test drive
@@ -101,14 +93,6 @@ class NotificationService {
         'bookingId': bookingId ?? '',
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyTestDriveBooked(
-      carName: carName,
-      buyerName: buyerName,
-      date: date,
-      time: time,
-    );
   }
 
   /// Notify seller when someone starts a chat
@@ -132,12 +116,6 @@ class NotificationService {
         'senderName': senderName,
       },
     );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyNewMessage(
-      senderName: senderName,
-      message: message,
-    );
   }
 
   /// Notify when car is sold
@@ -157,12 +135,6 @@ class NotificationService {
         'carName': carName,
         'buyerName':  buyerName,
       },
-    );
-
-    // ✅ Show local notification
-    await _localNotifications.notifyCarSold(
-      carName: carName,
-      buyerName:  buyerName,
     );
   }
 
@@ -202,12 +174,5 @@ class NotificationService {
         },
       );
     }
-
-    // ✅ Show local notification
-    await _localNotifications.notifyPriceDrop(
-      carName: carName,
-      oldPrice: oldPrice,
-      newPrice: newPrice,
-    );
   }
 }
