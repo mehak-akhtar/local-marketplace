@@ -8,6 +8,148 @@ import 'car_details/car_details.dart';
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({Key? key}) : super(key: key);
 
+  void _showKnowMoreDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 600), // ← Max height to prevent overflow
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: SingleChildScrollView( // ← Wrap content in scrollable view
+              child:  Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize. min,
+                  children: [
+                    // Logo
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8C87C),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.directions_car,
+                        size: 48,
+                        color: Color(0xFF1E3A5F),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Title
+                    const Text(
+                      'Welcome to Get Cars',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A5F),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Description points
+                    _buildInfoRow(Icons.search, 'Browse thousands of verified car listings'),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons.favorite, 'Save your favorite cars for later'),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons.chat_bubble_outline, 'Chat directly with sellers'),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons. event_available, 'Book test drives easily'),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons.verified_user, 'Buy and sell with confidence'),
+                    const SizedBox(height: 24),
+
+                    // Tagline
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8C87C).withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Your dream car is just a tap away!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Color(0xFF1E3A5F),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Close button - ✅ FIXED TO ACTUALLY CLOSE THE DIALOG
+                    SizedBox(
+                      width:  double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // ← This closes the dialog
+                        },
+                        style: ElevatedButton. styleFrom(
+                          backgroundColor:  const Color(0xFF1E3A5F),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                        child: const Text(
+                          'Got it! ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8C87C).withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: const Color(0xFF1E3A5F),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF1E3A5F),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritesAsync = ref.watch(favoritesStreamProvider);
@@ -25,7 +167,7 @@ class FavoritesScreen extends ConsumerWidget {
                 children: [
                   // Top Bar with Logo and Menu
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -44,13 +186,6 @@ class FavoritesScreen extends ConsumerWidget {
                             color: Color(0xFFE8C87C),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.menu,
-                          color: Color(0xFF1E3A5F),
-                        ),
-                        onPressed: () {},
                       ),
                     ],
                   ),
@@ -86,7 +221,9 @@ class FavoritesScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  _showKnowMoreDialog(context);
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1E3A5F),
                                   shape: RoundedRectangleBorder(

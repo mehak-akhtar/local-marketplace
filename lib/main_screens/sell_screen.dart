@@ -372,19 +372,19 @@ class _SellScreenState extends State<SellScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFF1E3A5F),
+                      borderRadius: BorderRadius. circular(8),
                     ),
                     child: const Text(
-                      'LOGO',
+                      'GC',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3A5F),
+                        fontSize: 20,
+                        fontWeight:  FontWeight.bold,
+                        color: Color(0xFFE8C87C),
                       ),
                     ),
                   ),

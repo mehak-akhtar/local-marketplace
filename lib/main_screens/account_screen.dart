@@ -470,7 +470,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   children: [
                     // Top Bar with Logo and Menu
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Row(
                           children: [
@@ -502,13 +502,6 @@ class _AccountScreenState extends State<AccountScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.menu,
-                            color: Color(0xFF1E3A5F),
-                          ),
-                          onPressed: () {},
                         ),
                       ],
                     ),
@@ -601,7 +594,6 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
 
                     const SizedBox(height: 12),
-                    const SizedBox(height: 12),
                     _buildMenuItem(
                       context,
                       'My Bookings',
@@ -615,6 +607,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 12),
                     _buildMenuItem(
                       context,
                       'Feedback',

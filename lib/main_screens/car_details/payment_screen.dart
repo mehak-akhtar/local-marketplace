@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
+import '../../services/payment_service.dart';
 import '../../services/test_drive_reminder_service.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -61,72 +62,108 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      // Create booking data
-      final bookingData = {
-        'carId': widget.carId,
-        'carName': carName,
-        'carPrice': carPrice,
-        'testDriveDate': Timestamp.fromDate(widget.testDriveDate),
-        'testDriveTime': '${widget.testDriveTime.hour}:${widget.testDriveTime.minute}',
-        'paymentMethod': selectedPaymentMethod,
-        'bookedAt': FieldValue.serverTimestamp(),
-        'status': 'confirmed',
-        'userId': currentUser.uid,
-        'userName': currentUser.displayName ?? 'User',
-        'userEmail': currentUser.email ?? '',
-      };
-
-      // Save to user's my_bookings subcollection
-      final bookingRef = await _firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .collection('my_bookings')
-          .add(bookingData);
-
-      // Get seller information from car data
-      final sellerUid = widget.carData['seller_uid'] ?? '';
-      final buyerName = currentUser.displayName ?? 'A user';
-      
-      // Format date and time for notification
-      final dateStr = DateFormat('MMM d, yyyy').format(widget.testDriveDate);
-      final timeStr = '${widget.testDriveTime.hour}:${widget.testDriveTime.minute.toString().padLeft(2, '0')}';
-
-      // Send notification to seller about the booking
-      if (sellerUid.isNotEmpty) {
-        await _notificationService.notifyTestDriveBooked(
-          carId: widget.carId,
-          carName: carName,
-          sellerUid: sellerUid,
-          buyerName: buyerName,
-          date: dateStr,
-          time: timeStr,
-          bookingId: bookingRef.id,
-        );
+      // Validation for card fields
+      if ((selectedPaymentMethod == 'Credit Card') &&
+          (_cardNumberController.text.isEmpty || _cvcController.text.isEmpty)) {
+        _showSnackBar('Please enter card details for testing', isError: true);
+        return;
       }
 
-      // Schedule reminder notification 24 hours before test drive
-      final testDriveDateTime = DateTime(
-        widget.testDriveDate.year,
-        widget.testDriveDate.month,
-        widget.testDriveDate.day,
-        widget.testDriveTime.hour,
-        widget.testDriveTime.minute,
-      );
+      try{
 
-      final reminderNotificationId = await _reminderService.scheduleTestDriveReminder(
-        testDriveDateTime: testDriveDateTime,
-        carName: carName,
-        time: timeStr,
-        buyerUid: currentUser.uid,
-        bookingId: bookingRef.id,
-      );
+        // 1. Initialize Polar Service
+        final polarService = PolarPaymentService();
 
-      // Store reminder notification ID in booking document for future reference
-      await bookingRef.update({
-        'reminderNotificationId': reminderNotificationId,
-        'reminderScheduled': reminderNotificationId != -1,
-      });
+        // 2. Perform Transactional API Call (No Webhooks)
+        final paymentResult = await polarService.processPayment(
+          amount: 10.0,
+          currency: 'USD',
+          description: 'Booking for car',
+          metadata: {
+            'userId': currentUser.uid,
+            'carID': 'bleh',
+          },
+          paymentMethod: selectedPaymentMethod,
+        );
 
+        if (paymentResult['success'] == true) {
+          // Create booking data
+          final bookingData = {
+            'carId': widget.carId,
+            'carName': carName,
+            'carPrice': carPrice,
+            'testDriveDate': Timestamp.fromDate(widget.testDriveDate),
+            'testDriveTime': '${widget.testDriveTime.hour}:${widget
+                .testDriveTime.minute}',
+            'paymentMethod': selectedPaymentMethod,
+            'bookedAt': FieldValue.serverTimestamp(),
+            'status': 'confirmed',
+            'userId': currentUser.uid,
+            'userName': currentUser.displayName ?? 'User',
+            'userEmail': currentUser.email ?? '',
+          };
+
+          // Save to user's my_bookings subcollection
+          final bookingRef = await _firestore
+              .collection('users')
+              .doc(currentUser.uid)
+              .collection('my_bookings')
+              .add(bookingData);
+
+          // Get seller information from car data
+          final sellerUid = widget.carData['seller_uid'] ?? '';
+          final buyerName = currentUser.displayName ?? 'A user';
+
+          // Format date and time for notification
+          final dateStr = DateFormat('MMM d, yyyy').format(
+              widget.testDriveDate);
+          final timeStr = '${widget.testDriveTime.hour}:${widget.testDriveTime
+              .minute.toString().padLeft(2, '0')}';
+
+          // Send notification to seller about the booking
+          if (sellerUid.isNotEmpty) {
+            await _notificationService.notifyTestDriveBooked(
+              carId: widget.carId,
+              carName: carName,
+              sellerUid: sellerUid,
+              buyerName: buyerName,
+              date: dateStr,
+              time: timeStr,
+              bookingId: bookingRef.id,
+            );
+          }
+
+          // Schedule reminder notification 24 hours before test drive
+          final testDriveDateTime = DateTime(
+            widget.testDriveDate.year,
+            widget.testDriveDate.month,
+            widget.testDriveDate.day,
+            widget.testDriveTime.hour,
+            widget.testDriveTime.minute,
+          );
+
+          final reminderNotificationId = await _reminderService
+              .scheduleTestDriveReminder(
+            testDriveDateTime: testDriveDateTime,
+            carName: carName,
+            time: timeStr,
+            buyerUid: currentUser.uid,
+            bookingId: bookingRef.id,
+          );
+
+          // Store reminder notification ID in booking document for future reference
+          await bookingRef.update({
+            'reminderNotificationId': reminderNotificationId,
+            'reminderScheduled': reminderNotificationId != -1,
+          });
+        } else {
+          throw paymentResult['error'] ?? 'Payment Failed';
+        }
+      }catch(e){
+        setState(() => _isProcessing = false);
+        _showSnackBar('$e', isError: true);
+      }
+      
       setState(() {
         _isProcessing = false;
       });
@@ -220,6 +257,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
     );
   }
+
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvcController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -419,6 +460,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     Row(
                       mainAxisAlignment:  MainAxisAlignment.spaceEvenly,
                       children: [
+                        _buildPaymentMethodButton('Credit Card'),
                         _buildPaymentMethodButton('PhonePe'),
                         _buildPaymentMethodButton('Gpay'),
                       ],
@@ -433,7 +475,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         _buildPaymentIcon('GPay', Colors.blue),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+                    _buildCardFields(),
+                    const SizedBox(height: 20),
                     // Pay Button - ✅ Now functional
                     SizedBox(
                       width: double.infinity,
@@ -456,7 +500,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ),
                         )
                             : Text(
-                          'Pay for $carName',
+                          'Book $carName for 10\$',
                           style:  const TextStyle(
                             fontSize: 18,
                             fontWeight:  FontWeight.w600,
@@ -472,6 +516,60 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCardFields() {
+    if (selectedPaymentMethod != 'Credit Card') {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Card Information (Sandbox Mode)',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _cardNumberController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: '4242 4242 4242 4242',
+            labelText: 'Card Number',
+            prefixIcon: const Icon(Icons.credit_card),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _expiryController,
+                decoration: InputDecoration(
+                  hintText: 'MM/YY',
+                  labelText: 'Expiry',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _cvcController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: '123',
+                  labelText: 'CVC',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
